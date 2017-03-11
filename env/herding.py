@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-
+"""zmiana"""
 class Herding(gym.Env):
 
     def __init__(self):
