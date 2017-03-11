@@ -1,10 +1,6 @@
 import gym
 import numpy as np
-<<<<<<<<< Temporary merge branch 1
-//taki sobie sprawdzajacy komentarz
-=========
-"""zmiana"""
->>>>>>>>> Temporary merge branch 2
+//tescik
 class Herding(gym.Env):
 
     def __init__(self):
