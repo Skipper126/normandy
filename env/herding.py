@@ -1,11 +1,10 @@
 import gym
 import numpy as np
-"""zmiana"""
+//huehuehuehuehuehuehue kot
 class Herding(gym.Env):
 
     def __init__(self):
         pass
-
     def _step(self, action):
         pass
 
