@@ -1,8 +1,6 @@
 import gym
 import numpy as np
-//taki sobie sprawdzajacy komentarz
-
-//tutaj totalnie nowa rzecz
+//tescik
 class Herding(gym.Env):
 
     def __init__(self):
