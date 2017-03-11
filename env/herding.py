@@ -1,6 +1,11 @@
 import gym
 import numpy as np
 //tescik
+
+def prime():
+
+    pass
+
 class Herding(gym.Env):
 
     def __init__(self):
