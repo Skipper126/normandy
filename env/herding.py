@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-"""zmiana"""
+//taki sobie sprawdzajacy komentarz
 class Herding(gym.Env):
 
     def __init__(self):
