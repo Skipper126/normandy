@@ -20,7 +20,6 @@ class Agent:
         self.body = rendering.make_circle(self.radius)
         self.body.add_attr(self.transform)
 
-
     def getBody(self):
         return self.body
 
@@ -52,6 +51,10 @@ class Herding(gym.Env):
         self.sheepCount = 4
         self.wolfCount = 1
         self.objectList = []
+        for _ in range(self.sheepCount):
+            self.objectList.append(Sheep())
+        for _ in range(self.wolfCount):
+            self.objectList.append(Wolf())
 
     def _step(self, action):
         pass
@@ -66,14 +69,8 @@ class Herding(gym.Env):
             screenHeight = 400
             self.viewer = rendering.Viewer(screenWidth, screenHeight)
 
-            for _ in range(self.sheepCount):
-                sheep = Sheep()
-                self.objectList.append(sheep)
-                self.viewer.add_geom(sheep.getBody())
-
-            wolf = Wolf()
-            self.objectList.append(wolf)
-            self.viewer.add_geom(wolf.getBody())
+            for agent in self.objectList:
+                self.viewer.add_geom(agent.getBody())
 
         return self.viewer.render()
 
