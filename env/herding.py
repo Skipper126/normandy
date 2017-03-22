@@ -1,6 +1,7 @@
 import gym
 import random
 from gym.envs.classic_control import rendering
+from gym import spaces
 import numpy as np
 
 
@@ -27,8 +28,7 @@ class Agent:
 class Sheep(Agent):
 
     def move(self):
-        self.x += random.randrange(-5, 5)
-        self.y += random.randrange(-5, 5)
+        #Tutaj Michał jedziesz
         self.transform.set_translation(self.x, self.y)
 
 
@@ -50,14 +50,19 @@ class Herding(gym.Env):
         self.viewer = None
         self.sheepCount = 4
         self.wolfCount = 1
-        self.objectList = []
+        self.sheepList = []
+        self.wolfList = []
         for _ in range(self.sheepCount):
-            self.objectList.append(Sheep())
+            self.sheepList.append(Sheep())
         for _ in range(self.wolfCount):
-            self.objectList.append(Wolf())
+            self.wolftList.append(Wolf())
+
+        self.action_space = spaces.MultiDiscrete([-5, 5], [-5, 5])
 
     def _step(self, action):
-        pass
+        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+        for sheep in self.sheepList:
+            sheep.move()
 
     def _reset(self):
         pass
@@ -69,7 +74,7 @@ class Herding(gym.Env):
             screenHeight = 400
             self.viewer = rendering.Viewer(screenWidth, screenHeight)
 
-            for agent in self.objectList:
+            for agent in self.sheepList + self.wolfList:
                 self.viewer.add_geom(agent.getBody())
 
         return self.viewer.render()
