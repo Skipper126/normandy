@@ -34,10 +34,11 @@ class Sheep(Agent):
 
 class Wolf(Agent):
 
-    def move(self, x, y):
+    def move(self, x, y, rotation):
         self.x = x
         self.y = y
         self.transform.set_translation(self.x, self.y)
+        self.transform.set_rotation(rotation)
 
 
 class Herding(gym.Env):
@@ -57,17 +58,27 @@ class Herding(gym.Env):
         for _ in range(self.wolfCount):
             self.wolftList.append(Wolf())
 
-        self.action_space = spaces.MultiDiscrete([-5, 5], [-5, 5])
+        self.action_space = spaces.MultiDiscrete([-5, 5], [-5, 5], [0, 360])
 
     def _step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
         for sheep in self.sheepList:
             sheep.move()
+        #zakładamy że jest tylko jeden wilk
+        self.wolfList[0].move(action[0], action[1])
+
+        return [], 0, False, {}
 
     def _reset(self):
-        pass
+        return [], 0, False, {}
 
     def _render(self, mode='human', close=False):
+
+        if close:
+            if self.viewer is not None:
+                self.viewer.close()
+                self.viewer = None
+            return
 
         if self.viewer is None:
             screenWidth = 600
@@ -78,9 +89,6 @@ class Herding(gym.Env):
                 self.viewer.add_geom(agent.getBody())
 
         return self.viewer.render()
-
-    def _close(self):
-        pass
 
 
 if __name__ == "__main__":
