@@ -65,7 +65,10 @@ class Herding(gym.Env):
         for sheep in self.sheepList:
             sheep.move()
         #zakładamy że jest tylko jeden wilk
-        self.wolfList[0].move(action[0], action[1])
+        deltaX = action[0]
+        deltaY = action[1]
+        deltaAngle = action[2]
+        self.wolfList[0].move(deltaX, deltaY, deltaAngle)
 
         return [], 0, False, {}
 
