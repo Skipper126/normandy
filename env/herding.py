@@ -132,6 +132,7 @@ class Dog(Agent):
         self.rotationMode = rotationMode
 
     def move(self, action):
+        # TODO sterowanie zależne od rotacji
         self.x += action[0]
         self.y += action[1]
 
