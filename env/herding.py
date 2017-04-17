@@ -309,6 +309,7 @@ class Herding(gym.Env):
 # KOD WYKONYWANY PRZY BEZPOŚREDNIM URUCHAMIANIU PLIKU herding.py
 def manualSteering():
     # main
+    # kod tutaj jest tylko dla przykładu i jest w pełni do nadpisania
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
