@@ -10,7 +10,9 @@ class SheepBehaviour:
 
 
 class AgentsLayout:
-
+    """
+    AgentsLayout zawiera statyczne metody do rozstawienia agentów na przy starcie rundy
+    """
     @staticmethod
     def _randomLayout(env):
         padding = 5
@@ -62,7 +64,6 @@ class Agent:
         self.sheepList = None
         self.dogList = None
         self.transform = rendering.Transform()
-        self.transform.set_translation(self.x, self.y)
         self.radius = 15
         self.body = rendering.make_circle(self.radius, res=50)
         self.body.add_attr(self.transform)
@@ -103,13 +104,11 @@ class Sheep(Agent):
         # self.sheepList zawiera tylko owce różne od danej
         # TODO
 
-        # wykonanie transformacji musi zostać wykonane na końcu metody
         self.transform.set_translation(self.x, self.y)
 
     def _complexMove(self):
         # TODO
 
-        # wykonanie transformacji musi zostać wykonane na końcu metody
         self.transform.set_translation(self.x, self.y)
         pass
 
@@ -124,25 +123,37 @@ class Dog(Agent):
     RAYS = 0
     TARGETS = 1
 
-    def __init__(self, observationSpace):
+    def __init__(self, observationSpace, rotationMode):
         Agent.__init__(self)
 
         self.body.set_color(185 / 255, 14 / 255, 37 / 255)
         self.rotation = 0
         self.observation = observationSpace
+        self.rotationMode = rotationMode
 
-    def move(self, deltaX, deltaY, deltaRotation=None):
-        self.x += deltaX
-        self.y += deltaY
-        self.rotation += deltaRotation
+    def move(self, action):
+        self.x += action[0]
+        self.y += action[1]
+
+        if self.rotationMode is RotationMode.FREE:
+            self.rotation = action[2]
+        else:
+            self.rotation = self._calculateRotation()
+
         self.transform.set_translation(self.x, self.y)
         self.transform.set_rotation(self.rotation)
+
+    def _calculateRotation(self):
+        # Obliczenie rotacji wskazującej środek ciężkości stada owiec
+        # TODO
+        return 0
 
     def updateObservation(self):
         """
         Metoda przeprowadzająca raytracing. Zmienna observation wskazuje na tablicę observation_space[i]
         środowiska, gdzie indeks 'i' oznacza danego psa.
         """
+        # TODO
         # Przykład użycia:
         for i, _ in enumerate(self.observation[self.RAYS]):
             self.observation[self.RAYS][i] = random.uniform(0, 1)
@@ -182,16 +193,14 @@ class Herding(gym.Env):
         # assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
 
         for i, dog in enumerate(self.dogList):
-            # 0 - deltaX, 1 - deltaY, 2 - deltaRotation
-            if self.rotationMode is RotationMode.FREE:
-                dog.move(action[i][0], action[i][1], action[i][2])
-            else:
-                dog.move(action[i][0], action[i][1])
+            # action[i] to deltaX, deltaY oraz opcjonalnie deltaRotation
+            dog.move(action[i])
 
         for sheep in self.sheepList:
             sheep.move()
 
         for dog in self.dogList:
+            # updateObservation() aktualizuje tablicę observation_space
             dog.updateObservation()
 
         return self.observation_space, self._reward(), self._checkIfDone(), {}
@@ -199,7 +208,11 @@ class Herding(gym.Env):
     def _reset(self):
         # Metoda statyczna klasy AgentsLayout. Wyjątkowo przyjmuje parametr self.
         self.agentsLayoutFunc(self)
-        return [], 0, False, {}
+
+        for dog in self.dogList:
+            dog.updateObservation()
+
+        return self.observation_space
 
     def _render(self, mode='human', close=False):
 
@@ -211,13 +224,15 @@ class Herding(gym.Env):
 
         if self.viewer is None:
             self.viewer = rendering.Viewer(self.mapWidth, self.mapHeight)
-
             for agent in self.sheepList + self.dogList:
                 self.viewer.add_geom(agent.getBody())
 
-        return self.viewer.render()
+        self.viewer.render()
 
     def setAgentsLayout(self, layout):
+        """
+        Metoda ustawia funkcję to rozstawiania agentów przy wywołaniu reset()
+        """
         self.agentsLayoutFunc = layout
 
     def setSheepBehaviourMode(self, behaviour):
@@ -232,7 +247,7 @@ class Herding(gym.Env):
             Każdy z psów otrzymuje wskaźnik na fragment observation_space dotyczący jego
             obserwacji. Przy każdym kroku będzie aktualizował swój fragment tablicy.
             """
-            self.dogList.append(Dog(self.observation_space[i]))
+            self.dogList.append(Dog(self.observation_space[i], self.params.ROTATION_MODE))
 
         # Każda owca dostaje kopię tablicy z innymi owcami oraz tablicę psów.
         for i in range(self.sheepCount):
@@ -292,20 +307,20 @@ class Herding(gym.Env):
 
 # KOD WYKONYWANY PRZY BEZPOŚREDNIM URUCHAMIANIU PLIKU herding.py
 def manualSteering():
-
     # main
-
+    import time
+    # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
     params.DOG_COUNT = 4
-    # Zbiór parametrów do środowiska przekazywanych do konstruktora.
+    params.MAX_MOVEMENT_DELTA = 10
     env = Herding(params)
     env.reset()
-    env.step(env.action_space.sample())
+    for _ in range(100):
+        env.step(env.action_space.sample())
+        env.render()
+        time.sleep(0.05)
 
-
-
-
-
+    env.close()
 
 
 
