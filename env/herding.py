@@ -4,6 +4,7 @@ from gym.envs.classic_control import rendering
 from gym import spaces
 import numpy as np
 
+TWOPI = 2 * 3.14159265359
 
 class SheepBehaviour:
     SIMPLE, COMPLEX = range(2)
@@ -45,36 +46,118 @@ class HerdingParams:
     def __init__(self):
         self.SHEEP_COUNT = 7
         self.DOG_COUNT = 2
+        self.AGENT_RADIUS = 15
         self.SHEEP_BEHAVIOUR = SheepBehaviour.SIMPLE
         self.FIELD_OF_VIEW = 180
         self.RAYS_COUNT = 128
         self.MAX_MOVEMENT_DELTA = 5
         self.MAX_ROTATION_DELTA = 90
-        self.MAP_HEIGHT = 600
+        self.MAP_HEIGHT = 800
         self.MAP_WIDTH = 1200
         self.LAYOUT = AgentsLayout.RANDOM
         self.ROTATION_MODE = RotationMode.FREE
 
 
+class HerdingRenderer:
+
+    class _Geom:
+
+        def __init__(self, envObject, envParams):
+            self.params = envParams
+            self.object = envObject
+            self.geomPartList = []
+            self.geomPartTransformList = []
+            self._createBody()
+            self._addTransformToAllParts()
+
+        def _createBody(self):
+            raise NotImplementedError
+
+        def _addTransformToAllParts(self):
+            for part in self.geomPartList:
+                transform = rendering.Transform()
+                self.geomPartTransformList.append(transform)
+                part.add_attr(transform)
+
+        def update(self):
+            raise NotImplementedError
+
+    class _Sheep(_Geom):
+
+        BODY = 0
+
+        def _createBody(self):
+            body = rendering.make_circle(self.object.radius, res=50)
+            body.set_color(181 / 255, 185 / 255, 215 / 255)
+            self.geomPartList.append(body)
+
+        def update(self):
+            tr = self.geomPartTransformList
+            tr[self.BODY].set_translation(self.object.x, self.object.y)
+
+    class _Dog(_Geom):
+
+        BODY = 0
+        RAY = 1
+        # TODO rysowanie promieni raytracingu
+
+        def _createBody(self):
+            body = rendering.make_circle(self.object.radius, res=50)
+            body.set_color(185 / 255, 14 / 255, 37 / 255)
+            self.geomPartList.append(body)
+
+            # line = rendering.Line((0, 0), (50, 0))
+            # self.geomPartList.append(line)
+
+        def update(self):
+            tr = self.geomPartTransformList
+            tr[self.BODY].set_translation(self.object.x, self.object.y)
+            tr[self.BODY].set_rotation(self.object.rotation)
+
+
+    def __init__(self, sheepList, dogList, envParams):
+        self.params = envParams
+        self.mapWidth = self.params.MAP_WIDTH
+        self.mapHeight = self.params.MAP_HEIGHT
+        self.dogList = dogList
+        self.sheepList = sheepList
+        self.geomList = []
+        self.viewer = rendering.Viewer(self.mapWidth, self.mapHeight)
+        self._initRenderObjects()
+
+    def _initRenderObjects(self):
+        for sheep in self.sheepList:
+            self.geomList.append(self._Sheep(sheep, self.params))
+
+        for dog in self.dogList:
+            self.geomList.append(self._Dog(dog, self.params))
+
+        for geom in self.geomList:
+            self.viewer.geoms.extend(geom.geomPartList)
+
+    def render(self):
+        for geom in self.geomList:
+            geom.update()
+
+        self.viewer.render()
+
+    def close(self):
+        self.viewer.close()
+
+
 class Agent:
 
-    def __init__(self):
+    def __init__(self, envParams):
         self.x = 0
         self.y = 0
         self.sheepList = None
         self.dogList = None
-        self.transform = rendering.Transform()
-        self.radius = 15
-        self.body = rendering.make_circle(self.radius, res=50)
-        self.body.add_attr(self.transform)
-
-    def getBody(self):
-        return self.body
+        self.params = envParams
+        self.radius = self.params.AGENT_RADIUS
 
     def setPos(self, x, y):
         self.x = x
         self.y = y
-        self.transform.set_translation(self.x, self.y)
 
     def setLists(self, sheepList, dogList):
         self.dogList = dogList
@@ -83,12 +166,11 @@ class Agent:
 
 class Sheep(Agent):
 
-    def __init__(self, behaviour):
-        Agent.__init__(self)
+    def __init__(self, envParams):
+        super().__init__(envParams)
 
         self.move = self._simpleMove
-        self.setBehaviourMode(behaviour)
-        self.body.set_color(181 / 255, 185 / 255, 215 / 255)
+        self.setBehaviourMode(self.params.SHEEP_BEHAVIOUR)
 
     def setBehaviourMode(self, behaviour):
         if behaviour is SheepBehaviour.SIMPLE:
@@ -98,51 +180,51 @@ class Sheep(Agent):
 
     """
     _simpleMove i _complexMove to metody poruszania się owcy.
-    Jedna z nich zostaje przypisana do self.move i wywoływana jako move()
+    Jedna z nich zostaje przypisana do self.move i wywoływana jako move().
+    self.sheepList zawiera tylko owce różne od danej
     """
     def _simpleMove(self):
-        # self.sheepList zawiera tylko owce różne od danej
         # TODO
-
-        self.transform.set_translation(self.x, self.y)
+        pass
 
     def _complexMove(self):
         # TODO
-
-        self.transform.set_translation(self.x, self.y)
         pass
 
 
 class Dog(Agent):
 
     """
-    RAYS i TARGETS to 'stałe' używane przy indeksowaniu wymiaru tablicy observation.
+    RAYS i TARGETS to stałe używane przy indeksowaniu wymiaru tablicy observation.
     observation[RAYS] odnosi się do wektora wartości promieni,
     observation[TARGETS] odnosie się do wektora z informają o celu w jaki trafił promień
     """
     RAYS = 0
     TARGETS = 1
 
-    def __init__(self, observationSpace, rotationMode):
-        Agent.__init__(self)
+    def __init__(self, observationSpace, envParams):
+        super().__init__(envParams)
 
-        self.body.set_color(185 / 255, 14 / 255, 37 / 255)
         self.rotation = 0
         self.observation = observationSpace
-        self.rotationMode = rotationMode
+        self.rotationMode = self.params.ROTATION_MODE
 
     def move(self, action):
         # TODO sterowanie zależne od rotacji
-        self.x += action[0]
-        self.y += action[1]
+        deltaX = action[0] * self.params.MAX_MOVEMENT_DELTA
+        deltaY = action[1] * self.params.MAX_MOVEMENT_DELTA
+        self.x += deltaX
+        self.y += deltaY
 
+        """
+        Rotacja jest w radianach (0, 2 * PI), action[2] jest od (-1, 1),
+        MAX_ROTATION_DELTA (0, 360)
+        """
+        #
         if self.rotationMode is RotationMode.FREE:
-            self.rotation = action[2]
+            self.rotation = action[2] * (self.params.MAX_ROTATION_DELTA / 360) * TWOPI
         else:
             self.rotation = self._calculateRotation()
-
-        self.transform.set_translation(self.x, self.y)
-        self.transform.set_rotation(self.rotation)
 
     def _calculateRotation(self):
         # Obliczenie rotacji wskazującej środek ciężkości stada owiec
@@ -186,6 +268,7 @@ class Herding(gym.Env):
         self.dogList = []
         self.viewer = None
 
+
         self.action_space = self._createActionSpace()
         self.observation_space = self._createObservationSpace()
         self._createAgents()
@@ -216,17 +299,18 @@ class Herding(gym.Env):
         return self.observation_space
 
     def _render(self, mode='human', close=False):
-
         if close:
             if self.viewer is not None:
                 self.viewer.close()
                 self.viewer = None
             return
 
+        """
+        Wszystko, co dotyczy wyświetlania środowiska, jest tworzone przy pierwszym
+        wywołaniu metody render().
+        """
         if self.viewer is None:
-            self.viewer = rendering.Viewer(self.mapWidth, self.mapHeight)
-            for agent in self.sheepList + self.dogList:
-                self.viewer.add_geom(agent.getBody())
+            self.viewer = HerdingRenderer(self.sheepList, self.dogList, self.params)
 
         self.viewer.render()
 
@@ -242,13 +326,13 @@ class Herding(gym.Env):
 
     def _createAgents(self):
         for i in range(self.sheepCount):
-            self.sheepList.append(Sheep(self.sheepBehaviour))
+            self.sheepList.append(Sheep(self.params))
         for i in range(self.dogCount):
             """
             Każdy z psów otrzymuje wskaźnik na fragment observation_space dotyczący jego
             obserwacji. Przy każdym kroku będzie aktualizował swój fragment tablicy.
             """
-            self.dogList.append(Dog(self.observation_space[i], self.params.ROTATION_MODE))
+            self.dogList.append(Dog(self.observation_space[i], self.params))
 
         # Każda owca dostaje kopię tablicy z innymi owcami oraz tablicę psów.
         for i in range(self.sheepCount):
@@ -261,18 +345,9 @@ class Herding(gym.Env):
         Każde wejscie to MultiDiscrete action space zawierający:
         deltaX, deltaY i zależnie od parametrów deltaRotation.
         """
-        singleActionSpace = None
 
-        if self.rotationMode is RotationMode.FREE:
-            singleActionSpace = spaces.MultiDiscrete(
-                np.array([[-self.maxMovementDelta, self.maxMovementDelta],
-                          [-self.maxMovementDelta, self.maxMovementDelta],
-                          [-self.maxRotationDelta, self.maxRotationDelta]]))
-
-        elif self.rotationMode is RotationMode.LOCKED_ON_HERD_CENTRE:
-            singleActionSpace = spaces.MultiDiscrete(
-                np.array([[-self.maxMovementDelta, self.maxMovementDelta],
-                          [-self.maxMovementDelta, self.maxMovementDelta]]))
+        dim = 3 if self.rotationMode is RotationMode.FREE else 2
+        singleActionSpace = spaces.Box(-1, 1, (dim, 1))
 
         return spaces.Tuple((singleActionSpace,) * self.dogCount)
 
