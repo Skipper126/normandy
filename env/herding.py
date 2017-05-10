@@ -3,8 +3,10 @@ import random
 from gym.envs.classic_control import rendering
 from gym import spaces
 import numpy as np
+import math
 
 TWOPI = 2 * 3.14159265359
+INPUT2ROTATION = TWOPI / 360
 
 class SheepBehaviour:
     SIMPLE, COMPLEX = range(2)
@@ -107,14 +109,16 @@ class HerdingRenderer:
             body.set_color(185 / 255, 14 / 255, 37 / 255)
             self.geomPartList.append(body)
 
-            # line = rendering.Line((0, 0), (50, 0))
-            # self.geomPartList.append(line)
+            line = rendering.Line((0, 0), (50, 0))
+            self.geomPartList.append(line)
 
         def update(self):
             tr = self.geomPartTransformList
             tr[self.BODY].set_translation(self.object.x, self.object.y)
             tr[self.BODY].set_rotation(self.object.rotation)
 
+            tr[self.RAY].set_translation(self.object.x, self.object.y)
+            tr[self.RAY].set_rotation(self.object.rotation)
 
     def __init__(self, sheepList, dogList, envParams):
         self.params = envParams
@@ -214,8 +218,6 @@ class Dog(Agent):
         # TODO sterowanie zależne od rotacji
         deltaX = action[0] * self.params.MAX_MOVEMENT_DELTA
         deltaY = action[1] * self.params.MAX_MOVEMENT_DELTA
-        self.x += deltaX
-        self.y += deltaY
 
         """
         Rotacja jest w radianach (0, 2 * PI), action[2] jest od (-1, 1),
@@ -223,9 +225,12 @@ class Dog(Agent):
         """
         #
         if self.rotationMode is RotationMode.FREE:
-            self.rotation = action[2] * (self.params.MAX_ROTATION_DELTA / 360) * TWOPI
+            self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * INPUT2ROTATION
         else:
             self.rotation = self._calculateRotation()
+
+        self.x += deltaX * math.cos(self.rotation) + deltaY * math.sin(self.rotation)
+        self.y += deltaY * -math.cos(self.rotation) + deltaX * math.sin(self.rotation)
 
     def _calculateRotation(self):
         # Obliczenie rotacji wskazującej środek ciężkości stada owiec
@@ -392,13 +397,14 @@ def manualSteering():
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
-    params.DOG_COUNT = 4
-    params.MAX_MOVEMENT_DELTA = 10
+    params.DOG_COUNT = 1
+    params.MAX_MOVEMENT_DELTA = 5
     env = Herding(params)
     env.reset()
 
+
     for _ in range(100):
-        env.step(env.action_space.sample())
+        env.step((np.array([0, 1, 0.1]),))
         env.render()
         time.sleep(0.05)
 
