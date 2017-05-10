@@ -190,12 +190,10 @@ class Sheep(Agent):
         for dog in self.dogList:
             distance = pow(pow((self.x - dog.x), 2) + pow((self.y - dog.y), 2), 0.5)
             if distance < 100:
-                if distance > 50:
-                    deltaX += ((self.x - dog.x) / distance) * (100 - distance)
-                    deltaY += ((self.y - dog.y) / distance) * (100 - distance)
-                else:
-                    deltaX += ((self.x - dog.x) / distance) * 50
-                    deltaY += ((self.y - dog.y) / distance) * 50
+                if distance < 50:
+                    distance = 50
+                deltaX += ((self.x - dog.x) / distance) * (100 - distance)
+                deltaY += ((self.y - dog.y) / distance) * (100 - distance)
 
         if deltaX > 50 or deltaY > 50:
             if deltaX > deltaY:
@@ -209,6 +207,7 @@ class Sheep(Agent):
         deltaY = deltaY / 50 * self.params.MAX_MOVEMENT_DELTA
         self.x += deltaX
         self.y += deltaY
+
 
     def _complexMove(self):
         # TODO
@@ -414,8 +413,8 @@ def manualSteering():
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
-    params.DOG_COUNT = 4
-    params.SHEEP_COUNT = 40
+    params.DOG_COUNT = 16
+    params.SHEEP_COUNT = 100
     params.MAX_MOVEMENT_DELTA = 10
     env = Herding(params)
     env.reset()
@@ -423,10 +422,13 @@ def manualSteering():
     for _ in range(100):
         #env.step(env.action_space.sample())
         #env.step((np.array([0, 1, 0.1]),))
-        env.step((np.array([0, 1, 0.1]), np.array([0, -1, 0.1]), np.array([0, 1, 0.1]), np.array([0, -1, 0.1])), )
+        env.step((np.array([0, 1, 0.1]), np.array([0, -1, 0.1]), np.array([0, 1, 0.1]), np.array([0, -1, 0.1])
+                  , np.array([0, -1, 0.1]), np.array([1, -1, 0.1]), np.array([-1, -1, 0.1]), np.array([1, 0, 0.1])
+                  , np.array([0, 1, 0.1]), np.array([1, 0, 0.1]), np.array([0, 1, 0.1]), np.array([0, -1, 0.1])
+                  , np.array([0, -1, 0.1]), np.array([-1, 0, 0.1]), np.array([-1, -1, 0.1]), np.array([1, -1, 0.1])), )
 
         env.render()
-        time.sleep(0.05)
+        time.sleep(0.002)
 
 
     env.close()
