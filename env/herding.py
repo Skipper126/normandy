@@ -184,6 +184,11 @@ class Sheep(Agent):
     self.sheepList zawiera tylko owce różne od danej
     """
     def _simpleMove(self):
+        tmpList = []
+        for dog in self.dogList:
+
+        #wypadkowy wektor ucieczki od elementow z tmp list
+        #ustawienie wektora ucieczki dla owcy
         # TODO
         pass
 
@@ -396,7 +401,6 @@ def manualSteering():
         env.step(env.action_space.sample())
         env.render()
         time.sleep(0.05)
-
     env.close()
 
 
