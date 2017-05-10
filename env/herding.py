@@ -2,6 +2,7 @@ import gym
 import random
 from gym.envs.classic_control import rendering
 from gym import spaces
+from pyglet.window import key
 import numpy as np
 import math
 
@@ -109,16 +110,14 @@ class HerdingRenderer:
             body.set_color(185 / 255, 14 / 255, 37 / 255)
             self.geomPartList.append(body)
 
-            line = rendering.Line((0, 0), (50, 0))
-            self.geomPartList.append(line)
+            # line = rendering.Line((0, 0), (50, 0))
+            # self.geomPartList.append(line)
 
         def update(self):
             tr = self.geomPartTransformList
             tr[self.BODY].set_translation(self.object.x, self.object.y)
             tr[self.BODY].set_rotation(self.object.rotation)
 
-            tr[self.RAY].set_translation(self.object.x, self.object.y)
-            tr[self.RAY].set_rotation(self.object.rotation)
 
     def __init__(self, sheepList, dogList, envParams):
         self.params = envParams
@@ -189,8 +188,29 @@ class Sheep(Agent):
     self.sheepList zawiera tylko owce różne od danej
     """
     def _simpleMove(self):
-        # TODO
-        pass
+        deltaX = 0
+        deltaY = 0
+        for dog in self.dogList:
+            distance = pow(pow((self.x - dog.x), 2) + pow((self.y - dog.y), 2), 0.5)
+            if distance < 100:
+                if distance < 50:
+                    distance = 50
+                deltaX += ((self.x - dog.x) / distance) * (100 - distance)
+                deltaY += ((self.y - dog.y) / distance) * (100 - distance)
+
+        if deltaX > 50 or deltaY > 50:
+            if deltaX > deltaY:
+                deltaY = deltaY / deltaX * 50
+                deltaX = 50
+            else:
+                deltaX = deltaX / deltaY * 50
+                deltaY = 50
+
+        deltaX = deltaX / 50 * self.params.MAX_MOVEMENT_DELTA
+        deltaY = deltaY / 50 * self.params.MAX_MOVEMENT_DELTA
+        self.x += deltaX
+        self.y += deltaY
+
 
     def _complexMove(self):
         # TODO
@@ -401,10 +421,33 @@ def manualSteering():
     params.MAX_MOVEMENT_DELTA = 5
     env = Herding(params)
     env.reset()
+    vector = [0,0]
 
+    def key_press(k, mod):
+        if k == key.LEFT:
+            vector[0] = -1
+        elif k == key.RIGHT:
+            vector[0] = 1
+        elif k == key.UP:
+            vector[1] = 1
+        elif k == key.DOWN:
+            vector[1] = -1
 
-    for _ in range(100):
-        env.step((np.array([0, 1, 0.1]),))
+    def key_release(k, mod):
+        if k == key.LEFT:
+            vector[0] = 0
+        elif k == key.RIGHT:
+            vector[0] = 0
+        elif k == key.UP:
+            vector[1] = 0
+        elif k == key.DOWN:
+            vector[1] = 0
+
+    env.render()
+    env.viewer.viewer.window.on_key_press = key_press
+    env.viewer.viewer.window.on_key_release = key_release
+    while 1:
+        env.step((np.array([vector[0], vector[1], 0]),))
         env.render()
         time.sleep(0.05)
 
