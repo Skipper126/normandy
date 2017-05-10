@@ -2,6 +2,7 @@ import gym
 import random
 from gym.envs.classic_control import rendering
 from gym import spaces
+from pyglet.window import key
 import numpy as np
 
 TWOPI = 2 * 3.14159265359
@@ -392,20 +393,41 @@ def manualSteering():
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
-    params.DOG_COUNT = 4
-    params.MAX_MOVEMENT_DELTA = 10
+    params.DOG_COUNT = 1
+    params.MAX_MOVEMENT_DELTA = 100
     env = Herding(params)
     env.reset()
+    vector = [0,0]
 
-    for _ in range(100):
-        env.step(env.action_space.sample())
+    def key_press(k, mod):
+        if k == key.LEFT:
+            vector[0] = -1
+        elif k == key.RIGHT:
+            vector[0] = 1
+        elif k == key.UP:
+            vector[1] = 1
+        elif k == key.DOWN:
+            vector[1] = -1
+
+    def key_release(k, mod):
+        if k == key.LEFT:
+            vector[0] = 0
+        elif k == key.RIGHT:
+            vector[0] = 0
+        elif k == key.UP:
+            vector[1] = 0
+        elif k == key.DOWN:
+            vector[1] = 0
+
+    env.render()
+    env.viewer.viewer.window.on_key_press = key_press
+    env.viewer.viewer.window.on_key_release = key_release
+    while 1:
+        env.step((np.array([vector[0], vector[1], 0]),))
         env.render()
         time.sleep(0.05)
 
-
     env.close()
-
-
 
 if __name__ == "__main__":
     manualSteering()
