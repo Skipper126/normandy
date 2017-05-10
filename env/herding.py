@@ -50,11 +50,12 @@ class HerdingParams:
         self.SHEEP_BEHAVIOUR = SheepBehaviour.SIMPLE
         self.FIELD_OF_VIEW = 180
         self.RAYS_COUNT = 128
+        self.RAY_LENGTH = 200
         self.MAX_MOVEMENT_DELTA = 5
         self.MAX_ROTATION_DELTA = 90
         self.MAP_HEIGHT = 800
         self.MAP_WIDTH = 1200
-        self.LAYOUT = AgentsLayout.RANDOM
+        self.LAYOUT_FUNCTION = AgentsLayout.RANDOM
         self.ROTATION_MODE = RotationMode.FREE
 
 
@@ -184,11 +185,6 @@ class Sheep(Agent):
     self.sheepList zawiera tylko owce różne od danej
     """
     def _simpleMove(self):
-        tmpList = []
-        for dog in self.dogList:
-
-        #wypadkowy wektor ucieczki od elementow z tmp list
-        #ustawienie wektora ucieczki dla owcy
         # TODO
         pass
 
@@ -265,7 +261,7 @@ class Herding(gym.Env):
         self.maxMovementDelta = self.params.MAX_MOVEMENT_DELTA
         self.maxRotationDelta = self.params.MAX_ROTATION_DELTA
         self.raysCount = self.params.RAYS_COUNT
-        self.agentsLayoutFunc = self.params.LAYOUT
+        self.setUpAgents = self.params.LAYOUT_FUNCTION
         self.sheepBehaviour = self.params.SHEEP_BEHAVIOUR
         self.rotationMode = self.params.ROTATION_MODE
 
@@ -296,7 +292,7 @@ class Herding(gym.Env):
 
     def _reset(self):
         # Metoda statyczna klasy AgentsLayout. Wyjątkowo przyjmuje parametr self.
-        self.agentsLayoutFunc(self)
+        self.setUpAgents(self)
 
         for dog in self.dogList:
             dog.updateObservation()
@@ -319,11 +315,11 @@ class Herding(gym.Env):
 
         self.viewer.render()
 
-    def setAgentsLayout(self, layout):
+    def setAgentsLayoutFunction(self, layoutFunction):
         """
         Metoda ustawia funkcję to rozstawiania agentów przy wywołaniu reset()
         """
-        self.agentsLayoutFunc = layout
+        self.setUpAgents = layoutFunction
 
     def setSheepBehaviourMode(self, behaviour):
         for sheep in self.sheepList:
@@ -339,9 +335,12 @@ class Herding(gym.Env):
             """
             self.dogList.append(Dog(self.observation_space[i], self.params))
 
-        # Każda owca dostaje kopię tablicy z innymi owcami oraz tablicę psów.
+        # Każdy agent dostaje kopię tablic innych agentów, bez siebie samego.
         for i in range(self.sheepCount):
             self.sheepList[i].setLists(np.delete(self.sheepList, i), self.dogList)
+
+        for i in range(self.dogCount):
+            self.dogList[i].setLists(self.sheepList, np.delete(self.dogList, i))
 
     def _createActionSpace(self):
         """
@@ -397,10 +396,13 @@ def manualSteering():
     params.MAX_MOVEMENT_DELTA = 10
     env = Herding(params)
     env.reset()
+
     for _ in range(100):
         env.step(env.action_space.sample())
         env.render()
         time.sleep(0.05)
+
+
     env.close()
 
 
