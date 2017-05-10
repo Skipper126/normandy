@@ -235,22 +235,28 @@ class Dog(Agent):
         self.rotationMode = self.params.ROTATION_MODE
 
     def move(self, action):
-        # TODO sterowanie zależne od rotacji
         deltaX = action[0] * self.params.MAX_MOVEMENT_DELTA
         deltaY = action[1] * self.params.MAX_MOVEMENT_DELTA
+
+        vecLength = math.sqrt(deltaX*deltaX + deltaY * deltaY)
+        if vecLength > self.params.MAX_MOVEMENT_DELTA:
+            norm = self.params.MAX_MOVEMENT_DELTA / vecLength
+            deltaX *= norm
+            deltaY *= norm
 
         """
         Rotacja jest w radianach (0, 2 * PI), action[2] jest od (-1, 1),
         MAX_ROTATION_DELTA (0, 360)
         """
-        #
         if self.rotationMode is RotationMode.FREE:
             self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * INPUT2ROTATION
         else:
             self.rotation = self._calculateRotation()
 
-        self.x += deltaX * math.cos(self.rotation) + deltaY * math.sin(self.rotation)
-        self.y += deltaY * -math.cos(self.rotation) + deltaX * math.sin(self.rotation)
+        cosRotation = math.cos(self.rotation)
+        sinRotation = math.sin(self.rotation)
+        self.x += deltaX * cosRotation + deltaY * sinRotation
+        self.y += deltaY * -cosRotation + deltaX * sinRotation
 
     def _calculateRotation(self):
         # Obliczenie rotacji wskazującej środek ciężkości stada owiec
@@ -416,12 +422,17 @@ def manualSteering():
     # kod tutaj jest tylko dla przykładu i jest w pełni do nadpisania
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
+    closeEnv = [False]
     params = HerdingParams()
     params.DOG_COUNT = 1
+    params.SHEEP_COUNT = 50
     params.MAX_MOVEMENT_DELTA = 5
+    # Ustawienie rotacji na środek stada jest tylko chwilowym rozwiązaniem
+    params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
     env = Herding(params)
     env.reset()
-    vector = [0,0]
+    vector = [0, 0]
+
 
     def key_press(k, mod):
         if k == key.LEFT:
@@ -429,9 +440,11 @@ def manualSteering():
         elif k == key.RIGHT:
             vector[0] = 1
         elif k == key.UP:
-            vector[1] = 1
-        elif k == key.DOWN:
             vector[1] = -1
+        elif k == key.DOWN:
+            vector[1] = 1
+        elif k == key.ESCAPE:
+            closeEnv[0] = True
 
     def key_release(k, mod):
         if k == key.LEFT:
@@ -446,15 +459,12 @@ def manualSteering():
     env.render()
     env.viewer.viewer.window.on_key_press = key_press
     env.viewer.viewer.window.on_key_release = key_release
-    while 1:
-        env.step((np.array([vector[0], vector[1], 0]),))
+    while not closeEnv[0]:
+        env.step((np.array([vector[0], vector[1]]),))
         env.render()
         time.sleep(0.05)
 
-
     env.close()
-
-
 
 if __name__ == "__main__":
     manualSteering()
