@@ -186,8 +186,29 @@ class Sheep(Agent):
     self.sheepList zawiera tylko owce różne od danej
     """
     def _simpleMove(self):
-        # TODO
-        pass
+        deltaX = 0
+        deltaY = 0
+        for dog in self.dogList:
+            distance = pow(pow((self.x - dog.x), 2) + pow((self.y - dog.y), 2), 0.5)
+            if distance < 100:
+                if distance < 50:
+                    distance = 50
+                deltaX += ((self.x - dog.x) / distance) * (100 - distance)
+                deltaY += ((self.y - dog.y) / distance) * (100 - distance)
+
+        if deltaX > 50 or deltaY > 50:
+            if deltaX > deltaY:
+                deltaY = deltaY / deltaX * 50
+                deltaX = 50
+            else:
+                deltaX = deltaX / deltaY * 50
+                deltaY = 50
+
+        deltaX = deltaX / 50 * self.params.MAX_MOVEMENT_DELTA
+        deltaY = deltaY / 50 * self.params.MAX_MOVEMENT_DELTA
+        self.x += deltaX
+        self.y += deltaY
+
 
     def _complexMove(self):
         # TODO
@@ -393,8 +414,9 @@ def manualSteering():
     import time
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
-    params.DOG_COUNT = 1
-    params.MAX_MOVEMENT_DELTA = 100
+    params.DOG_COUNT = 16
+    params.SHEEP_COUNT = 100
+    params.MAX_MOVEMENT_DELTA = 10
     env = Herding(params)
     env.reset()
     vector = [0,0]
@@ -427,7 +449,10 @@ def manualSteering():
         env.render()
         time.sleep(0.05)
 
+
     env.close()
+
+
 
 if __name__ == "__main__":
     manualSteering()
