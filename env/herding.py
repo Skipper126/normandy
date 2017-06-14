@@ -126,7 +126,8 @@ class HerdingRenderer:
             for i in range(self.params.RAYS_COUNT):
                 tr[self.RAY + i].set_scale(self.object.observation[0][i], 0)
                 self.geomPartList[self.RAY + i].set_color(*self.COLOR[self.object.observation[1][i]])
-                rot = self.object.rotation + PI - (self.params.FIELD_OF_VIEW / self.params.RAYS_COUNT) * DEG2RAD * i
+                # RAYS_COUNT nie może być równy 1
+                rot = self.object.rotation + PI - (self.params.FIELD_OF_VIEW/ (self.params.RAYS_COUNT - 1)) * DEG2RAD * i
                 tr[self.RAY + i].set_rotation(rot)
                 x = math.cos(rot) * self.object.radius
                 y = math.sin(rot) * self.object.radius
@@ -291,7 +292,7 @@ class Dog(Agent):
         # TODO
         # Przykład użycia:
         for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = i / 128
+            self.observation[self.RAYS][i] = 1
 
         for i, _ in enumerate(self.observation[self.TARGETS]):
             self.observation[self.TARGETS][i] = random.randint(-1, 1)
@@ -476,7 +477,7 @@ def manualSteering():
     params = HerdingParams()
     params.DOG_COUNT = 1
     params.SHEEP_COUNT = 50
-
+    params.RAYS_COUNT = 6
     env = Herding(params)
     env.reset()
     env.render()
