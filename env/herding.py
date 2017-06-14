@@ -6,8 +6,9 @@ from pyglet.window import key
 import numpy as np
 import math
 
-TWOPI = 2 * 3.14159265359
-INPUT2ROTATION = TWOPI / 360
+PI = 3.14159265359
+TWOPI = 2 * PI
+DEG2RAD = 0.01745329252
 
 class SheepBehaviour:
     SIMPLE, COMPLEX = range(2)
@@ -53,7 +54,7 @@ class HerdingParams:
         self.SHEEP_BEHAVIOUR = SheepBehaviour.SIMPLE
         self.FIELD_OF_VIEW = 180
         self.RAYS_COUNT = 128
-        self.RAY_LENGTH = 200
+        self.RAY_LENGTH = 300
         self.MAX_MOVEMENT_DELTA = 5
         self.MAX_ROTATION_DELTA = 90
         self.MAP_HEIGHT = 800
@@ -103,20 +104,33 @@ class HerdingRenderer:
 
         BODY = 0
         RAY = 1
-        # TODO rysowanie promieni raytracingu
+        COLOR = {
+            -1: (1, 0, 0),
+            0: (0, 0, 0),
+            1: (0, 1, 0)
+        }
 
         def _createBody(self):
+
             body = rendering.make_circle(self.object.radius, res=50)
             body.set_color(185 / 255, 14 / 255, 37 / 255)
             self.geomPartList.append(body)
 
-            # line = rendering.Line((0, 0), (50, 0))
-            # self.geomPartList.append(line)
+            for _ in range(self.params.RAYS_COUNT):
+                line = rendering.Line((0, 0), (self.params.RAY_LENGTH, 0))
+                self.geomPartList.append(line)
 
         def update(self):
             tr = self.geomPartTransformList
             tr[self.BODY].set_translation(self.object.x, self.object.y)
-            tr[self.BODY].set_rotation(self.object.rotation)
+            for i in range(self.params.RAYS_COUNT):
+                tr[self.RAY + i].set_scale(self.object.observation[0][i], 0)
+                self.geomPartList[self.RAY + i].set_color(*self.COLOR[self.object.observation[1][i]])
+                rot = self.object.rotation + PI - (self.params.FIELD_OF_VIEW / self.params.RAYS_COUNT) * DEG2RAD * i
+                tr[self.RAY + i].set_rotation(rot)
+                x = math.cos(rot) * self.object.radius
+                y = math.sin(rot) * self.object.radius
+                tr[self.RAY + i].set_translation(self.object.x + x, self.object.y + y)
 
 
     def __init__(self, sheepList, dogList, envParams):
@@ -249,7 +263,7 @@ class Dog(Agent):
         MAX_ROTATION_DELTA (0, 360)
         """
         if self.rotationMode is RotationMode.FREE:
-            self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * INPUT2ROTATION
+            self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * DEG2RAD
         else:
             self.rotation = self._calculateRotation()
 
@@ -268,10 +282,16 @@ class Dog(Agent):
         Metoda przeprowadzająca raytracing. Zmienna observation wskazuje na tablicę observation_space[i]
         środowiska, gdzie indeks 'i' oznacza danego psa.
         """
+        """
+        Odpowienie ustawienie x, y, rot promienia na podstawie objX, objY, objRot:
+        rot: objRot + PI + (kąt widzenia w stopniach / ilość promieni) * DEG2RAD * i
+        x: objX + sin(rot) * radius
+        y: objY + cos(rot) * radius
+        """
         # TODO
         # Przykład użycia:
         for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = random.uniform(0, 1)
+            self.observation[self.RAYS][i] = i / 128
 
         for i, _ in enumerate(self.observation[self.TARGETS]):
             self.observation[self.TARGETS][i] = random.randint(-1, 1)
@@ -418,21 +438,9 @@ class Herding(gym.Env):
 
 # KOD WYKONYWANY PRZY BEZPOŚREDNIM URUCHAMIANIU PLIKU herding.py
 def manualSteering():
-    # main
-    # kod tutaj jest tylko dla przykładu i jest w pełni do nadpisania
     import time
-    # Zbiór parametrów do środowiska przekazywanych do konstruktora.
+    vector = [0, 0, 0]
     closeEnv = [False]
-    params = HerdingParams()
-    params.DOG_COUNT = 1
-    params.SHEEP_COUNT = 50
-    params.MAX_MOVEMENT_DELTA = 5
-    # Ustawienie rotacji na środek stada jest tylko chwilowym rozwiązaniem
-    params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
-    env = Herding(params)
-    env.reset()
-    vector = [0, 0]
-
 
     def key_press(k, mod):
         if k == key.LEFT:
@@ -443,6 +451,10 @@ def manualSteering():
             vector[1] = -1
         elif k == key.DOWN:
             vector[1] = 1
+        elif k == key.COMMA:
+            vector[2] = 0.1
+        elif k == key.PERIOD:
+            vector[2] = -0.1
         elif k == key.ESCAPE:
             closeEnv[0] = True
 
@@ -455,12 +467,23 @@ def manualSteering():
             vector[1] = 0
         elif k == key.DOWN:
             vector[1] = 0
+        elif k == key.COMMA:
+            vector[2] = 0
+        elif k == key.PERIOD:
+            vector[2] = 0
 
+    # Zbiór parametrów do środowiska przekazywanych do konstruktora.
+    params = HerdingParams()
+    params.DOG_COUNT = 1
+    params.SHEEP_COUNT = 50
+
+    env = Herding(params)
+    env.reset()
     env.render()
     env.viewer.viewer.window.on_key_press = key_press
     env.viewer.viewer.window.on_key_release = key_release
     while not closeEnv[0]:
-        env.step((np.array([vector[0], vector[1]]),))
+        env.step((np.array([vector[0], vector[1], vector[2]]),))
         env.render()
         time.sleep(0.05)
 
