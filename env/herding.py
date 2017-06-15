@@ -127,7 +127,9 @@ class HerdingRenderer:
                 tr[self.RAY + i].set_scale(self.object.observation[0][i], 0)
                 self.geomPartList[self.RAY + i].set_color(*self.COLOR[self.object.observation[1][i]])
                 # RAYS_COUNT nie może być równy 1
-                rot = self.object.rotation + PI - (self.params.FIELD_OF_VIEW/ (self.params.RAYS_COUNT - 1)) * DEG2RAD * i
+                rot = self.object.rotation - self.object.rayRadian[i]
+                # ((180 - self.params.FIELD_OF_VIEW) / 360) * PI + PI - (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i
+                # PI - (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i <--- z tego zrobic tablice
                 tr[self.RAY + i].set_rotation(rot)
                 x = math.cos(rot) * self.object.radius
                 y = math.sin(rot) * self.object.radius
@@ -248,6 +250,13 @@ class Dog(Agent):
         self.rotation = 0
         self.observation = observationSpace
         self.rotationMode = self.params.ROTATION_MODE
+        self.rayRadian = []
+        for i in range(self.params.RAYS_COUNT):
+            self.rayRadian.append(PI + ((180 - self.params.FIELD_OF_VIEW) / 360) * PI + (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i)
+        for i, _ in enumerate(self.observation[self.RAYS]):
+            self.observation[self.RAYS][i] = 1
+            self.observation[self.TARGETS][i] = 0
+
 
     def move(self, action):
         deltaX = action[0] * self.params.MAX_MOVEMENT_DELTA
@@ -293,9 +302,25 @@ class Dog(Agent):
         # Przykład użycia:
         for i, _ in enumerate(self.observation[self.RAYS]):
             self.observation[self.RAYS][i] = 1
-
-        for i, _ in enumerate(self.observation[self.TARGETS]):
-            self.observation[self.TARGETS][i] = random.randint(-1, 1)
+            self.observation[self.TARGETS][i] = 0
+        for dog in self.dogList:
+            distance = pow(pow((self.x - dog.x), 2) + pow((self.y - dog.y), 2), 0.5)
+            if distance < self.params.RAY_LENGTH:
+                for i in range(self.params.RAYS_COUNT):
+                    # if ((self.y - dog.y) > 0 and self.rotation - self.rayRadian[i] > PI) or ((self.y - dog.y) < 0 and self.rotation - self.rayRadian[i] <= PI):
+                    circleDistance = abs((-1 * math.tan(self.rotation - self.rayRadian[i])) * (self.x - dog.x) + self.y - dog.y) / pow(pow(math.tan(self.rotation - self.rayRadian[i]), 2) + 1, 0.5)
+                    if circleDistance <= self.radius:
+                        self.observation[self.RAYS][i] = distance / self.params.RAY_LENGTH
+                        self.observation[self.TARGETS][i] = 1
+        for sheep in self.sheepList:
+            distance = pow(pow((self.x - sheep.x), 2) + pow((self.y - sheep.y), 2), 0.5)
+            if distance < self.params.RAY_LENGTH:
+                for i in range(self.params.RAYS_COUNT):
+                    # if ((self.y - sheep.y) > 0 and self.rotation - self.rayRadian[i] > PI) or ((self.y - sheep.y) < 0 and self.rotation - self.rayRadian[i] <= PI):
+                    circleDistance = abs(-1*math.tan(self.rotation - self.rayRadian[i]) * (self.x - sheep.x) + self.y - sheep.y) / pow(pow(math.tan(self.rotation - self.rayRadian[i]), 2) + 1, 0.5)
+                    if circleDistance <= self.radius:
+                        self.observation[self.RAYS][i] = distance / self.params.RAY_LENGTH
+                        self.observation[self.TARGETS][i] = -1
 
 
 class Herding(gym.Env):
@@ -476,8 +501,9 @@ def manualSteering():
     # Zbiór parametrów do środowiska przekazywanych do konstruktora.
     params = HerdingParams()
     params.DOG_COUNT = 1
-    params.SHEEP_COUNT = 50
-    params.RAYS_COUNT = 6
+    params.SHEEP_COUNT = 5
+    params.RAYS_COUNT = 20
+    params.FIELD_OF_VIEW = 120
     env = Herding(params)
     env.reset()
     env.render()
@@ -486,7 +512,7 @@ def manualSteering():
     while not closeEnv[0]:
         env.step((np.array([vector[0], vector[1], vector[2]]),))
         env.render()
-        time.sleep(0.05)
+        time.sleep(0.005)
 
     env.close()
 
