@@ -61,20 +61,21 @@ class Dog(Agent):
         # TODO
         return 0
 
-    def checkSide(self, distance, index, agent):
+    def setDistance(self, distance, index, agent):
         if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
-            delta = pow((-2 * (self.x - agent.x)) + (-2 * math.tan(self.observation[self.RAYS][index])), 2) - (4 * (1 + pow(math.tan(self.observation[self.RAYS][index]), 2)) * (-1 * pow(self.radius, 2) - pow(self.x - agent.x, 2) - pow(self.y - agent.y, 2)))
-            x1 = (((2 * (self.x - agent.x)) + (2 * math.tan(self.observation[self.RAYS][index]))) - math.pow(delta, 0.5)) / (2 * (1 + pow(math.tan(self.observation[self.RAYS][index]), 2)))
-            y1 = math.tan(self.observation[self.RAYS][index]) * x1
-            x2 = (((2 * (self.x - agent.x)) + (2 * math.tan(self.observation[self.RAYS][index]))) + math.pow(delta, 0.5)) / (2 * (1 + pow(math.tan(self.observation[self.RAYS][index]), 2)))
-            y2 = math.tan(self.observation[self.RAYS][index]) * x2
-            print(x1, x2, self.x, agent.x, y1, y2, self.y, agent.y)
+            rayTan = math.tan(self.rotation - self.rayRadian[index])
+            delta = pow((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y)), 2) - (4 * (1 + pow(rayTan, 2)) * (-1 * pow(self.radius, 2) + pow(self.x - agent.x, 2) + pow(self.y - agent.y, 2)))
+            x1 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) - math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
+            y1 = rayTan * x1
+            x2 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) + math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
+            y2 = rayTan * x2
             distance1 = pow(pow(x1, 2) + pow(y1, 2), 0.5)
             distance2 = pow(pow(x2, 2) + pow(y2, 2), 0.5)
+            print((self.x - agent.x), (self.y - agent.y), distance1, distance2, distance)
             if distance1 < distance2:
-                distance = distance1
+                distance = distance1 - self.radius
             else:
-                distance = distance2
+                distance = distance2 - self.radius
             self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
             self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
 
@@ -91,8 +92,6 @@ class Dog(Agent):
         """
         # TODO
         # Przykład użycia:
-
-
         for i, _ in enumerate(self.observation[self.RAYS]):
             self.observation[self.RAYS][i] = 1
             self.observation[self.TARGETS][i] = 0
@@ -111,14 +110,14 @@ class Dog(Agent):
                     while left >= 0:
                         circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[left]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[left]), 2) + 1, 0.5)
                         if circleDistance <= self.radius:
-                            self.checkSide(distance, left, agent)
+                            self.setDistance(distance, left, agent)
                         else:
                             break
                         left -= 1
                     while right <= self.params.RAYS_COUNT-1:
                         circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[right]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[right]), 2) + 1, 0.5)
                         if circleDistance <= self.radius:
-                            self.checkSide(distance, right, agent)
+                            self.setDistance(distance, right, agent)
                         else:
                             break
                         right += 1
