@@ -92,16 +92,18 @@ class Dog(Agent):
                     while left >= 0:
                         circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[left]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[left]), 2) + 1, 0.5)
                         if circleDistance <= self.radius:
-                            self.observation[self.RAYS][left] = distance / self.params.RAY_LENGTH
-                            self.observation[self.TARGETS][left] = 1 if type(agent) is Dog else -1
+                            if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][left]:
+                                self.observation[self.RAYS][left] = distance / self.params.RAY_LENGTH
+                                self.observation[self.TARGETS][left] = 1 if type(agent) is Dog else -1
                         else:
                             break
                         left -= 1
                     while right <= self.params.RAYS_COUNT-1:
                         circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[right]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[right]), 2) + 1, 0.5)
                         if circleDistance <= self.radius:
-                            self.observation[self.RAYS][right] = distance / self.params.RAY_LENGTH
-                            self.observation[self.TARGETS][right] = 1 if type(agent) is Dog else -1
+                            if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][right]:
+                                self.observation[self.RAYS][right] = distance / self.params.RAY_LENGTH
+                                self.observation[self.TARGETS][right] = 1 if type(agent) is Dog else -1
                         else:
                             break
                         right += 1
