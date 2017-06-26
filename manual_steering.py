@@ -42,8 +42,8 @@ def key_release(k, mod):
 
 # Zbiór parametrów do środowiska przekazywanych do konstruktora.
 params = EnvParams()
-params.DOG_COUNT = 2
-params.SHEEP_COUNT = 5
+params.DOG_COUNT = 1
+params.SHEEP_COUNT = 200
 params.RAYS_COUNT = 20
 params.FIELD_OF_VIEW = 120
 env = Herding(params)

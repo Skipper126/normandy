@@ -21,7 +21,12 @@ class Dog(Agent):
         self.rotationMode = self.params.ROTATION_MODE
         self.rayRadian = []
         for i in range(self.params.RAYS_COUNT):
-            self.rayRadian.append(PI + ((180 - self.params.FIELD_OF_VIEW) / 360) * PI + (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i)
+            self.rayRadian.append((PI + ((180 - self.params.FIELD_OF_VIEW) / 360) * PI + (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i) % TWOPI)
+        if self.rayRadian[0] > self.rayRadian[self.params.RAYS_COUNT - 1]:
+            self.wideView = True
+        else:
+            self.wideView = False
+
         for i, _ in enumerate(self.observation[self.RAYS]):
             self.observation[self.RAYS][i] = 1
             self.observation[self.TARGETS][i] = 0
@@ -42,6 +47,7 @@ class Dog(Agent):
         """
         if self.rotationMode is RotationMode.FREE:
             self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * DEG2RAD
+            self.rotation = self.rotation % TWOPI
         else:
             self.rotation = self._calculateRotation()
 
@@ -75,9 +81,27 @@ class Dog(Agent):
         for agent in self.sheepList + self.dogList:
             distance = pow(pow((self.x - agent.x), 2) + pow((self.y - agent.y), 2), 0.5)
             if distance < self.params.RAY_LENGTH:
-                for i in range(self.params.RAYS_COUNT):
-                    # if ((self.y - agent.y) > 0 and self.rotation - self.rayRadian[i] > PI) or ((self.y - agent.y) < 0 and self.rotation - self.rayRadian[i] <= PI):
-                    circleDistance = abs(-1*math.tan(self.rotation - self.rayRadian[i]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[i]), 2) + 1, 0.5)
-                    if circleDistance <= self.radius:
-                        self.observation[self.RAYS][i] = distance / self.params.RAY_LENGTH
-                        self.observation[self.TARGETS][i] = 1 if type(agent) is Dog else -1
+                tempAngle = math.atan2(self.y - agent.y, self.x - agent.x) - self.rotation
+                while tempAngle < 0:
+                    tempAngle += TWOPI
+                if (self.wideView and not (self.rayRadian[self.params.RAYS_COUNT-1] < tempAngle < self.rayRadian[0])) or (not self.wideView and (self.rayRadian[0] < tempAngle < self.rayRadian[self.params.RAYS_COUNT-1])):
+                    if tempAngle < self.rayRadian[0]:
+                        tempAngle += TWOPI
+                    left = self.params.RAYS_COUNT - 2 - int((tempAngle - self.rayRadian[0]) / ((self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD))
+                    right = left + 1
+                    while left >= 0:
+                        circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[left]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[left]), 2) + 1, 0.5)
+                        if circleDistance <= self.radius:
+                            self.observation[self.RAYS][left] = distance / self.params.RAY_LENGTH
+                            self.observation[self.TARGETS][left] = 1 if type(agent) is Dog else -1
+                        else:
+                            break
+                        left -= 1
+                    while right <= self.params.RAYS_COUNT-1:
+                        circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[right]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[right]), 2) + 1, 0.5)
+                        if circleDistance <= self.radius:
+                            self.observation[self.RAYS][right] = distance / self.params.RAY_LENGTH
+                            self.observation[self.TARGETS][right] = 1 if type(agent) is Dog else -1
+                        else:
+                            break
+                        right += 1
