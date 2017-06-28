@@ -61,63 +61,80 @@ class Dog(Agent):
         # TODO
         return 0
 
-    def setDistance(self, distance, index, agent):
-        if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
-            rayTan = math.tan(self.rotation - self.rayRadian[index])
-            delta = pow((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y)), 2) - (4 * (1 + pow(rayTan, 2)) * (-1 * pow(self.radius, 2) + pow(self.x - agent.x, 2) + pow(self.y - agent.y, 2)))
-            x1 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) - math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
-            y1 = rayTan * x1
-            x2 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) + math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
-            y2 = rayTan * x2
-            distance1 = pow(pow(x1, 2) + pow(y1, 2), 0.5)
-            distance2 = pow(pow(x2, 2) + pow(y2, 2), 0.5)
-            print((self.x - agent.x), (self.y - agent.y), distance1, distance2, distance)
-            if distance1 < distance2:
-                distance = distance1 - self.radius
+    def clearObservation(self):
+        for i, _ in enumerate(self.observation[self.RAYS]):
+            self.observation[self.RAYS][i] = 1
+            self.observation[self.TARGETS][i] = 0
+
+    def getDistanceFromAgent(self, agent):
+        return pow(pow((self.x - agent.x), 2) + pow((self.y - agent.y), 2), 0.5)
+
+    def calculateAngle(self, agent):
+        tempAngle = math.atan2(self.y - agent.y, self.x - agent.x) - self.rotation
+        while tempAngle < 0:
+            tempAngle += TWOPI
+        return tempAngle
+
+    def calculateDelta(self, rayTan, agent):
+        return pow((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y)), 2) - (4 * (1 + pow(rayTan, 2)) * (-1 * pow(self.radius, 2) + pow(self.x - agent.x, 2) + pow(self.y - agent.y, 2)))
+
+    def calculateStraightToCircleDistance(self, agent, index):
+        return abs(-1 * math.tan(self.rotation - self.rayRadian[index]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[index]), 2) + 1, 0.5)
+
+    def isInSight(self, tempAngle):
+        if self.wideView:
+            if not self.rayRadian[self.params.RAYS_COUNT-1] < tempAngle < self.rayRadian[0]:
+                return True
+        else:
+            if self.rayRadian[0] < tempAngle < self.rayRadian[self.params.RAYS_COUNT-1]:
+                return True
+        return False
+
+    def setDistanceAndColor(self, index, agent):
+        rayTan = math.tan(self.rotation - self.rayRadian[index])
+        delta = self.calculateDelta(rayTan, agent)
+        x1 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) - math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
+        y1 = rayTan * x1
+        x2 = (((2 * (self.x - agent.x)) + (2 * rayTan * (self.y - agent.y))) + math.pow(delta, 0.5)) / (2 * (1 + pow(rayTan, 2)))
+        y2 = rayTan * x2
+        distance1 = pow(pow(x1, 2) + pow(y1, 2), 0.5)
+        distance2 = pow(pow(x2, 2) + pow(y2, 2), 0.5)
+        if distance1 < distance2:
+            distance = distance1 - self.radius
+        else:
+            distance = distance2 - self.radius
+        self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
+        self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
+
+    def iterateRays(self, distance, agent, index, iterator):
+        while 0 <= index <= self.params.RAYS_COUNT - 1:
+            circleDistance = self.calculateStraightToCircleDistance(agent, index)
+            if circleDistance <= self.radius:
+                if (distance - (2 * self.radius)) / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
+                    self.setDistanceAndColor(index, agent)
             else:
-                distance = distance2 - self.radius
-            self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
-            self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
+                break
+            index += iterator
+
+    def colorRays(self, tempAngle, distance, agent):
+        if tempAngle < self.rayRadian[0]:
+            tempAngle += TWOPI
+        left = self.params.RAYS_COUNT - 2 - int((tempAngle - self.rayRadian[0]) / ((self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD))
+        right = left + 1
+        # color left rays
+        self.iterateRays(distance, agent, left, -1)
+        # color right rays
+        self.iterateRays(distance, agent, right, 1)
 
     def updateObservation(self):
         """
         Metoda przeprowadzająca raytracing. Zmienna observation wskazuje na tablicę observation_space[i]
         środowiska, gdzie indeks 'i' oznacza danego psa.
         """
-        """
-        Odpowienie ustawienie x, y, rot promienia na podstawie objX, objY, objRot:
-        rot: objRot + PI + (kąt widzenia w stopniach / ilość promieni) * DEG2RAD * i
-        x: objX + sin(rot) * radius
-        y: objY + cos(rot) * radius
-        """
-        # TODO
-        # Przykład użycia:
-        for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = 1
-            self.observation[self.TARGETS][i] = 0
-
+        self.clearObservation()
         for agent in self.sheepList + self.dogList:
-            distance = pow(pow((self.x - agent.x), 2) + pow((self.y - agent.y), 2), 0.5)
-            if distance < self.params.RAY_LENGTH:
-                tempAngle = math.atan2(self.y - agent.y, self.x - agent.x) - self.rotation
-                while tempAngle < 0:
-                    tempAngle += TWOPI
-                if (self.wideView and not (self.rayRadian[self.params.RAYS_COUNT-1] < tempAngle < self.rayRadian[0])) or (not self.wideView and (self.rayRadian[0] < tempAngle < self.rayRadian[self.params.RAYS_COUNT-1])):
-                    if tempAngle < self.rayRadian[0]:
-                        tempAngle += TWOPI
-                    left = self.params.RAYS_COUNT - 2 - int((tempAngle - self.rayRadian[0]) / ((self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD))
-                    right = left + 1
-                    while left >= 0:
-                        circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[left]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[left]), 2) + 1, 0.5)
-                        if circleDistance <= self.radius:
-                            self.setDistance(distance, left, agent)
-                        else:
-                            break
-                        left -= 1
-                    while right <= self.params.RAYS_COUNT-1:
-                        circleDistance = abs(-1 * math.tan(self.rotation - self.rayRadian[right]) * (self.x - agent.x) + self.y - agent.y) / pow(pow(math.tan(self.rotation - self.rayRadian[right]), 2) + 1, 0.5)
-                        if circleDistance <= self.radius:
-                            self.setDistance(distance, right, agent)
-                        else:
-                            break
-                        right += 1
+            distance = self.getDistanceFromAgent(agent)
+            if distance - (2 * self.radius) < self.params.RAY_LENGTH:
+                tempAngle = self.calculateAngle(agent)
+                if self.isInSight(tempAngle):
+                    self.colorRays(tempAngle, distance, agent)
