@@ -103,8 +103,9 @@ class Dog(Agent):
             distance = distance1 - self.radius
         else:
             distance = distance2 - self.radius
-        self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
-        self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
+        if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
+            self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
+            self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
 
     def iterateRays(self, distance, agent, index, iterator):
         while 0 <= index <= self.params.RAYS_COUNT - 1:
