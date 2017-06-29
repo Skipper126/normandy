@@ -1,10 +1,9 @@
 from gym.envs.classic_control import rendering
-from ...constants import EnvParams
+from ...herding import Herding
 
 class Geom:
-    def __init__(self, envObject, envParams: EnvParams):
-        self.params = envParams
-        self.object = envObject
+    def __init__(self, env :Herding):
+        self.env = env
         self.geomPartList = []
         self.geomPartTransformList = []
         self._createBody()

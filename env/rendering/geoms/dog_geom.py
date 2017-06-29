@@ -12,6 +12,11 @@ class DogGeom(Geom):
         1: (0, 1, 0)
     }
 
+    def __init__(self, env, dogObject):
+        self.object = dogObject
+        self.params = env.params
+        super().__init__(env)
+
     def _createBody(self):
 
         body = rendering.make_circle(self.object.radius, res=50)
@@ -27,11 +32,9 @@ class DogGeom(Geom):
         tr[self.BODY].set_translation(self.object.x, self.object.y)
         for i in range(self.params.RAYS_COUNT):
             tr[self.RAY + i].set_scale(self.object.observation[0][i], 0)
-            self.geomPartList[self.RAY + i].set_color(*self.COLOR[self.object.observation[1][i]])
-            # RAYS_COUNT nie może być równy 1
+            color = tuple(min(x*(1.5 - self.object.observation[0][i]), 1) for x in self.COLOR[self.object.observation[1][i]])
+            self.geomPartList[self.RAY + i].set_color(*color)
             rot = self.object.rotation - self.object.rayRadian[i]
-            # ((180 - self.params.FIELD_OF_VIEW) / 360) * PI + PI - (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i
-            # PI - (self.params.FIELD_OF_VIEW / (self.params.RAYS_COUNT - 1)) * DEG2RAD * i <--- z tego zrobic tablice
             tr[self.RAY + i].set_rotation(rot)
             x = math.cos(rot) * self.object.radius
             y = math.sin(rot) * self.object.radius

@@ -1,30 +1,29 @@
 from gym.envs.classic_control import rendering
-from .geoms.sheep_geom import SheepGeom
-from .geoms.dog_geom import DogGeom
-from ..constants import EnvParams
+from .geoms import *
+from ..herding import Herding
 
 
 class Renderer:
 
-    def __init__(self, sheepList, dogList, envParams: EnvParams):
-        self.params = envParams
+    def __init__(self, env: Herding):
+        self.env = env
+        self.params = env.params
         self.mapWidth = self.params.MAP_WIDTH
         self.mapHeight = self.params.MAP_HEIGHT
-        self.dogList = dogList
-        self.sheepList = sheepList
         self.geomList = []
         self.viewer = rendering.Viewer(self.mapWidth, self.mapHeight)
         self._initRenderObjects()
-
-    def _initRenderObjects(self):
-        for sheep in self.sheepList:
-            self.geomList.append(SheepGeom(sheep, self.params))
-
-        for dog in self.dogList:
-            self.geomList.append(DogGeom(dog, self.params))
-
         for geom in self.geomList:
             self.viewer.geoms.extend(geom.geomPartList)
+
+    def _initRenderObjects(self):
+        for sheep in self.env.sheepList:
+            self.geomList.append(sheep_geom.SheepGeom(self.env, sheep))
+
+        for dog in self.env.dogList:
+            self.geomList.append(dog_geom.DogGeom(self.env, dog))
+
+        self.geomList.append(crosshair.Crosshair(self.env))
 
     def render(self):
         for geom in self.geomList:

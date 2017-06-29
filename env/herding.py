@@ -28,6 +28,8 @@ class Herding(gym.Env):
         self.sheepList = []
         self.dogList = []
         self.viewer = None
+        self.herdCentreX = 100
+        self.herdCentreY = 100
 
         self.action_space = self._createActionSpace()
         self.observation_space = self._createObservationSpace()
@@ -71,7 +73,7 @@ class Herding(gym.Env):
         """
         if self.viewer is None:
             from .rendering.renderer import Renderer
-            self.viewer = Renderer(self.sheepList, self.dogList, self.params)
+            self.viewer = Renderer(self)
 
         self.viewer.render()
 
@@ -142,6 +144,8 @@ class Herding(gym.Env):
         najprawdopodobniej będzie to suma kwadratów odległości owiec od ich środka ciężkości.
         """
         # TODO
+        self.herdCentreX = self.dogList[0].x
+        self.herdCentreY = self.dogList[0].y
         return 0
 
 
