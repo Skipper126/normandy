@@ -6,7 +6,7 @@ class Crosshair(Geom):
 
     def _createBody(self):
         crosshairSize = 10
-        verticalBar = rendering.Line((-crosshairSize - 1,0),(crosshairSize, 0))
+        verticalBar = rendering.Line((-crosshairSize - 1, 0), (crosshairSize, 0))
         horizontalBar = rendering.Line((0, -crosshairSize - 1), (0, crosshairSize))
 
         verticalBar.set_color(0, 0, 0)
