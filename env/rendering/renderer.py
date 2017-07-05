@@ -14,16 +14,16 @@ class Renderer:
         self.viewer = rendering.Viewer(self.mapWidth, self.mapHeight)
         self._initRenderObjects()
         for geom in self.geomList:
-            self.viewer.geoms.extend(geom.geomPartList)
+            self.viewer.geoms.extend(geom.getParts())
 
     def _initRenderObjects(self):
         for sheep in self.env.sheepList:
-            self.geomList.append(sheep_geom.SheepGeom(self.env, sheep))
+            self.geomList.append(sheep_geom.SheepGeom(sheep))
 
         for dog in self.env.dogList:
-            self.geomList.append(dog_geom.DogGeom(self.env, dog))
+            self.geomList.append(dog_geom.DogGeom(dog, self.params))
 
-        self.geomList.append(crosshair.Crosshair(self.env))
+        self.geomList.append(crosshair.Crosshair(self.env.herdCentrePoint))
 
     def render(self):
         for geom in self.geomList:
