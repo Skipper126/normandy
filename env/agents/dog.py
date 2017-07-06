@@ -18,7 +18,6 @@ class Dog(Agent):
 
         self.rotation = 0
         self.observation = observationSpace
-        self.reward = 0
         self.rotationMode = self.params.ROTATION_MODE
         self.rayRadian = []
         for i in range(self.params.RAYS_COUNT):

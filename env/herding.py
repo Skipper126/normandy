@@ -162,17 +162,15 @@ class Herding(gym.Env):
 
         #do poprawienia
         if self.scatter > self.previousScatter or self.constansScatterCounter == 5:
-            self.rewardValue -= 0.2
+            self.rewardValue = 0.2
             self.constansScatterCounter = 0
         if self.scatter < self.previousScatter:
-            self.rewardValue +=0.5
+            self.rewardValue = 0.5
             self.constansScatterCounter = 0
         if self.scatter == self.previousScatter:
             self.constansScatterCounter += 1
 
-        print(self.rewardValue)
-        print(self.scatter)
-        print(self.constansScatterCounter)
+        print(self.rewardValue, self.scatter, self.constansScatterCounter)
 
         return 0
 

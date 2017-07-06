@@ -39,8 +39,6 @@ def key_release(k, mod):
     elif k == key.PERIOD:
         vector[2] = 0
 
-startTime = time.time()
-i = 0
 
 # Zbiór parametrów do środowiska przekazywanych do konstruktora.
 params = EnvParams()
@@ -56,12 +54,5 @@ env.viewer.viewer.window.on_key_release = key_release
 while not closeEnv[0]:
     env.step((np.array([vector[0], vector[1], vector[2]]), np.array([0, 0, 0]), np.array([0, 0, 0])))
     env.render()
-
-    timeDiff = time.time() - startTime
-    i += 1
-    if timeDiff > 1:
-        startTime = time.time()
-        print(int(i))
-        i = 0
 
 env.close()
