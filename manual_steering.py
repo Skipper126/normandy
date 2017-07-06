@@ -44,8 +44,8 @@ i = 0
 
 # Zbiór parametrów do środowiska przekazywanych do konstruktora.
 params = EnvParams()
-params.DOG_COUNT = 3
-params.SHEEP_COUNT = 50
+params.DOG_COUNT = 1
+params.SHEEP_COUNT = 10
 params.RAYS_COUNT = 128
 params.FIELD_OF_VIEW = 180
 env = Herding(params)

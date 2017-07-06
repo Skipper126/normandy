@@ -143,8 +143,14 @@ class Herding(gym.Env):
         najprawdopodobniej będzie to suma kwadratów odległości owiec od ich środka ciężkości.
         """
         # TODO
-        self.herdCentrePoint[0] = self.dogList[0].x
-        self.herdCentrePoint[1] = self.dogList[0].y
+        self.herdCentrePoint[0] = self.herdCentrePoint[1] = 0
+        for sheep in self.sheepList:
+            self.herdCentrePoint[0] += sheep.x
+            self.herdCentrePoint[1] += sheep.y
+
+        self.herdCentrePoint[0] /= self.sheepCount
+        self.herdCentrePoint[1] /= self.sheepCount
+
         return 0
 
 
