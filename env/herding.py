@@ -24,12 +24,14 @@ class Herding(gym.Env):
         self.setUpAgents = self.params.LAYOUT_FUNCTION
         self.sheepBehaviour = self.params.SHEEP_BEHAVIOUR
         self.rotationMode = self.params.ROTATION_MODE
-
         self.sheepList = []
         self.dogList = []
         self.viewer = None
         self.herdCentrePoint = [0, 0]
-
+        self.previousScatter = 0
+        self.scatter = 0
+        self.rewardValue = 0
+        self.constansScatterCounter = 0
         self.action_space = self._createActionSpace()
         self.observation_space = self._createObservationSpace()
         self._createAgents()
@@ -141,6 +143,7 @@ class Herding(gym.Env):
         """
         Obliczanie nagrody za dany ruch. Sposób obliczenia jeszcze nie ustalony,
         najprawdopodobniej będzie to suma kwadratów odległości owiec od ich środka ciężkości.
+        Wyliczenie scatter - rozproszenie
         """
         # TODO
         self.herdCentrePoint[0] = self.herdCentrePoint[1] = 0
@@ -150,6 +153,26 @@ class Herding(gym.Env):
 
         self.herdCentrePoint[0] /= self.sheepCount
         self.herdCentrePoint[1] /= self.sheepCount
+
+
+        self.previousScatter = self.scatter
+        self.scatter = 0
+        for sheep in self.sheepList:
+            self.scatter += (sheep.x - self.herdCentrePoint[0]).__pow__(2) + (sheep.y - self.herdCentrePoint[1]).__pow__(2)
+
+        #do poprawienia
+        if self.scatter > self.previousScatter or self.constansScatterCounter == 5:
+            self.rewardValue -= 0.2
+            self.constansScatterCounter = 0
+        if self.scatter < self.previousScatter:
+            self.rewardValue +=0.5
+            self.constansScatterCounter = 0
+        if self.scatter == self.previousScatter:
+            self.constansScatterCounter += 1
+
+        print(self.rewardValue)
+        print(self.scatter)
+        print(self.constansScatterCounter)
 
         return 0
 
