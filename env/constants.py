@@ -54,3 +54,8 @@ class EnvParams:
         self.MAP_WIDTH = 1200
         self.LAYOUT_FUNCTION = AgentsLayout.RANDOM
         self.ROTATION_MODE = RotationMode.FREE
+        self.REWARD = 0.2
+        self.PUNISHMENT = -0.5
+        self.REWARD_FOR_HERDING = 20
+        self.EPOCH = 1000
+        self.SCATTER_LEVEL = 200
