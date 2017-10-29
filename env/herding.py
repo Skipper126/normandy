@@ -4,6 +4,7 @@ import numpy as np
 from .constants import *
 from .agents.dog import Dog
 from .agents.sheep import Sheep
+from threading import Thread
 
 
 class Herding(gym.Env):
@@ -47,7 +48,6 @@ class Herding(gym.Env):
             sheep.move()
 
         for dog in self.dogList:
-            # updateObservation() aktualizuje tablicę observation_space
             dog.updateObservation()
 
         return self.state, self._reward(), self._checkIfDone(), {}
