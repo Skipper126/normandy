@@ -7,7 +7,6 @@ from .agents.sheep import Sheep
 
 
 class Herding(gym.Env):
-
     metadata = {
         'render.modes': ['human']
     }
@@ -32,8 +31,7 @@ class Herding(gym.Env):
         self.scatter = 0
         self.rewardValue = 0
         self.constansScatterCounter = 0
-        self.action_space = self._createActionSpace()
-        self.observation_space = self._createObservationSpace()
+        self.state = self._createState()
         self._createAgents()
         self.epoch = 0
 
@@ -51,7 +49,7 @@ class Herding(gym.Env):
             # updateObservation() aktualizuje tablicę observation_space
             dog.updateObservation()
 
-        return self.observation_space, self._reward(), self._checkIfDone(), {}
+        return self.state, self._reward(), self._checkIfDone(), {}
 
     def _reset(self):
         # Metoda statyczna klasy AgentsLayout. Wyjątkowo przyjmuje parametr self.
@@ -60,7 +58,7 @@ class Herding(gym.Env):
         for dog in self.dogList:
             dog.updateObservation()
 
-        return self.observation_space
+        return self.state
 
     def _render(self, mode='human', close=False):
         if close:
@@ -97,7 +95,7 @@ class Herding(gym.Env):
             Każdy z psów otrzymuje wskaźnik na fragment observation_space dotyczący jego
             obserwacji. Przy każdym kroku będzie aktualizował swój fragment tablicy.
             """
-            self.dogList.append(Dog(self.observation_space[i], self.params))
+            self.dogList.append(Dog(self.state[i], self.params))
 
         # Każdy agent dostaje kopię tablic innych agentów, bez siebie samego.
         for i in range(self.sheepCount):
@@ -106,20 +104,23 @@ class Herding(gym.Env):
         for i in range(self.dogCount):
             self.dogList[i].setLists(self.sheepList, list(np.delete(self.dogList, i)))
 
-    def _createActionSpace(self):
+    @property
+    def action_space(self):
         """
         Stworzenie action space zależnego od ilości psów w środowisku.
         Action space to krotka zawierająca wejscia dla kolejnych psów. 
         Każde wejscie to MultiDiscrete action space zawierający:
         deltaX, deltaY i zależnie od parametrów deltaRotation.
         """
-
         dim = 3 if self.rotationMode is RotationMode.FREE else 2
-        singleActionSpace = spaces.Box(-1, 1, (dim, 1))
+        singleActionSpace = spaces.Box(-1, 1, (dim,))
+        return singleActionSpace
 
-        return spaces.Tuple((singleActionSpace,) * self.dogCount)
+    @property
+    def observation_space(self):
+        return spaces.Box(-1, 1, (self.raysCount * 2,))
 
-    def _createObservationSpace(self):
+    def _createState(self):
         """
         Wymiary tablicy observation_space:
             pierwszy - tablica obserwacji dla każdego z psów
@@ -139,7 +140,7 @@ class Herding(gym.Env):
         """
         # TODO
         self.epoch += 1
-        if(self.epoch == self.params.EPOCH or self.scatter < self.params.SCATTER_LEVEL):
+        if (self.epoch == self.params.EPOCH or self.scatter < self.params.SCATTER_LEVEL):
             return True
 
         return False
@@ -158,7 +159,7 @@ class Herding(gym.Env):
         self.scatter = 0
         for sheep in self.sheepList:
             self.scatter += (sheep.x - self.herdCentrePoint[0]).__pow__(2) + (
-            sheep.y - self.herdCentrePoint[1]).__pow__(2)
+                sheep.y - self.herdCentrePoint[1]).__pow__(2)
 
     def _reward(self):
         """
@@ -168,17 +169,14 @@ class Herding(gym.Env):
         """
         self._scatter()
 
-        #do sprawdzenia
+        # do sprawdzenia
         if self.scatter > self.previousScatter:
             self.rewardValue = self.params.PUNISHMENT
         if self.scatter < self.previousScatter:
             self.rewardValue = self.params.REWARD
         if self.scatter < self.params.SCATTER_LEVEL:
             self.rewardValue = self.params.REWARD_FOR_HERDING
-
+        self.rewardValue = (self.previousScatter - self.scatter) * 0.02
         print(self.rewardValue, self.scatter, self.constansScatterCounter)
 
         return 0
-
-
-
