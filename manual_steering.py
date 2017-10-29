@@ -42,8 +42,8 @@ def key_release(k, mod):
 
 # Zbiór parametrów do środowiska przekazywanych do konstruktora.
 params = EnvParams()
-params.DOG_COUNT = 1
-params.SHEEP_COUNT = 10
+params.DOG_COUNT = 2
+params.SHEEP_COUNT = 100
 params.RAYS_COUNT = 128
 params.FIELD_OF_VIEW = 180
 env = Herding(params)
@@ -52,7 +52,7 @@ env.render()
 env.viewer.viewer.window.on_key_press = key_press
 env.viewer.viewer.window.on_key_release = key_release
 while not closeEnv[0]:
-    env.step((np.array([vector[0], vector[1], vector[2]]), np.array([0, 0, 0]), np.array([0, 0, 0])))
+    env.step((np.array([vector[0], vector[1], vector[2]]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0]), np.array([0, 0, 0])))
     env.render()
 
 env.close()

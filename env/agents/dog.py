@@ -28,7 +28,7 @@ class Dog(Agent):
             self.wideView = False
 
         for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = 1
+            self.observation[self.RAYS][i] = 0
             self.observation[self.TARGETS][i] = 0
 
     def move(self, action):
@@ -63,7 +63,7 @@ class Dog(Agent):
 
     def clearObservation(self):
         for i, _ in enumerate(self.observation[self.RAYS]):
-            self.observation[self.RAYS][i] = 1
+            self.observation[self.RAYS][i] = 0
             self.observation[self.TARGETS][i] = 0
 
     def getDistanceFromAgent(self, agent):
@@ -103,15 +103,15 @@ class Dog(Agent):
             distance = distance1 - self.radius
         else:
             distance = distance2 - self.radius
-        if distance / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
-            self.observation[self.RAYS][index] = distance / self.params.RAY_LENGTH
+        if 1 - (distance / self.params.RAY_LENGTH) > self.observation[self.RAYS][index]:
+            self.observation[self.RAYS][index] = 1 - (distance / self.params.RAY_LENGTH)
             self.observation[self.TARGETS][index] = 1 if type(agent) is Dog else -1
 
     def iterateRays(self, distance, agent, index, iterator):
         while 0 <= index <= self.params.RAYS_COUNT - 1:
             circleDistance = self.calculateStraightToCircleDistance(agent, index)
             if circleDistance <= self.radius:
-                if (distance - (2 * self.radius)) / self.params.RAY_LENGTH < self.observation[self.RAYS][index]:
+                if (distance - (2 * self.radius)) / self.params.RAY_LENGTH < 1 - self.observation[self.RAYS][index]:
                     self.setDistanceAndColor(index, agent)
             else:
                 break
