@@ -7,6 +7,7 @@ from .agents.sheep import Sheep
 
 
 class Herding(gym.Env):
+
     metadata = {
         'render.modes': ['human']
     }
@@ -140,7 +141,7 @@ class Herding(gym.Env):
         """
         # TODO
         self.epoch += 1
-        if (self.epoch == self.params.EPOCH or self.scatter < self.params.SCATTER_LEVEL):
+        if self.epoch == self.params.EPOCH or self.scatter < self.params.SCATTER_LEVEL:
             return True
 
         return False
@@ -169,14 +170,14 @@ class Herding(gym.Env):
         """
         self._scatter()
 
-        # do sprawdzenia
-        if self.scatter > self.previousScatter:
-            self.rewardValue = self.params.PUNISHMENT
+        #do sprawdzenia
+        #self.rewardValue = EULER.__pow__(((self.previousScatter - self.scatter).__pow__(2) / 2).__neg__())
+        self.rewardValue = self.previousScatter - self.scatter
         if self.scatter < self.previousScatter:
-            self.rewardValue = self.params.REWARD
+            self.rewardValue.__neg__()
         if self.scatter < self.params.SCATTER_LEVEL:
             self.rewardValue = self.params.REWARD_FOR_HERDING
-        self.rewardValue = (self.previousScatter - self.scatter) * 0.02
+
         print(self.rewardValue, self.scatter, self.constansScatterCounter)
 
         return 0
