@@ -55,7 +55,7 @@ class Herding(gym.Env):
     def _reset(self):
         # Metoda statyczna klasy AgentsLayout. Wyjątkowo przyjmuje parametr self.
         self.setUpAgents(self)
-
+        self.epoch = 0
         for dog in self.dogList:
             dog.updateObservation()
 
@@ -178,6 +178,6 @@ class Herding(gym.Env):
         if self.scatter < self.params.SCATTER_LEVEL:
             self.rewardValue = self.params.REWARD_FOR_HERDING
 
-        print(self.rewardValue, self.scatter, self.constansScatterCounter)
+        #print(self.rewardValue, self.scatter, self.constansScatterCounter)
 
-        return 0
+        return self.rewardValue
