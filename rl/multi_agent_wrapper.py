@@ -4,13 +4,14 @@ from tensorforce import Configuration
 
 class MultiAgentWrapper:
 
-    def __init__(self, states_spec, actions_spec, network_spec, config, Agent, quantity):
+    def __init__(self, agentType, agentParams, agentsCount):
         self.agents = []
-        firstAgent = Agent(states_spec, actions_spec, network_spec, Configuration(**config))
+        firstAgent = agentType(**agentParams)
         self.agents.append(firstAgent)
         self.model = firstAgent.model
-        for _ in range(quantity - 1):
-            agent = Agent(states_spec, actions_spec, network_spec, Configuration(**config))
+        for _ in range(agentsCount - 1):
+            agent = agentType(**agentParams)
+            agent.model.close()
             agent.model = self.model
             self.agents.append(agent)
 
@@ -19,8 +20,7 @@ class MultiAgentWrapper:
             agent.reset()
 
     def close(self):
-        pass
-
+        self.model.close()
     @property
     def timestep(self):
         return self.agents[0].timestep
@@ -32,8 +32,7 @@ class MultiAgentWrapper:
     def act(self, states, deterministic=False):
         action = ()
         for i, agent in enumerate(self.agents):
-            s = np.append(states[i][0], states[i][1])
-            action += (agent.act(states=s, deterministic=deterministic),)
+            action += (agent.act(states=states[i], deterministic=deterministic),)
         return action
 
     def observe(self, reward, terminal):

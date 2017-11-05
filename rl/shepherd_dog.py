@@ -8,7 +8,7 @@ from tensorforce import Configuration
 import gym
 from gym import spaces
 import win32api
-from .testenv import TestEnv
+from testenv import TestEnv
 
 class OpenAIWrapper(OpenAIGym):
 
@@ -17,10 +17,8 @@ class OpenAIWrapper(OpenAIGym):
         self.gym = env
 
 
-
-
 params = EnvParams()
-params.DOG_COUNT = 1
+params.DOG_COUNT = 2
 params.SHEEP_COUNT = 10
 params.RAYS_COUNT = 128
 params.FIELD_OF_VIEW = 180
@@ -30,7 +28,18 @@ params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
 params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
 env = OpenAIWrapper(TestEnv(params), 'herding')
 
-agent = TRPOAgent(
+# agent = TRPOAgent(
+#     states_spec=env.states,
+#     actions_spec=env.actions,
+#     network_spec=[
+#         dict(type='dense', size=300),
+#         dict(type='dense', size=100)
+#     ],
+#     config=Configuration(
+#         batch_size=4096,
+#         normalize_rewards=True
+#     ))
+agent = MultiAgentWrapper(TRPOAgent, dict(
     states_spec=env.states,
     actions_spec=env.actions,
     network_spec=[
@@ -40,8 +49,8 @@ agent = TRPOAgent(
     config=Configuration(
         batch_size=4096,
         normalize_rewards=True
-    ))
-
+    )
+), params.DOG_COUNT)
 # Create the runner
 runner = Runner(agent=agent, environment=env)
 
@@ -64,6 +73,8 @@ def episode_finished(r):
                 r.environment.gym.render()
                 if terminal is True:
                     break
+    if win32api.GetAsyncKeyState(ord('S')):
+        r.agent.save_model('model.ckpt')
     return True
 
 

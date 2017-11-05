@@ -6,20 +6,24 @@ from gym import spaces
 class TestEnv(Herding):
 
     def _step(self, action):
-        self.dogList[0].move(action)
+        state, reward, terminal, _ = super()._step(action)
+        newState = []
+        for i, _ in enumerate(self.dogList):
+            s = state[i]
+            s = s.flatten()
+            newState.append(s)
 
-        for sheep in self.sheepList:
-            sheep.move()
-
-        self.dogList[0].updateObservation()
-
-        return np.append(self.state[0][0], self.state[0][1]), self._reward(), self._checkIfDone(), {}
+        return newState, reward, terminal, _
 
     def _reset(self):
-        self.setUpAgents(self)
-        self.dogList[0].updateObservation()
+        state = super()._reset()
+        newState = []
+        for i, _ in enumerate(self.dogList):
+            s = state[i]
+            s = s.flatten()
+            newState.append(s)
 
-        return np.append(self.state[0][0], self.state[0][1])
+        return newState
 
     def _checkIfDone(self):
         if self.scatter < self.params.SCATTER_LEVEL:
