@@ -1,7 +1,7 @@
 from .agent import Agent
 from ..constants import *
 import math
-
+import numpy as np
 
 class Dog(Agent):
 
@@ -13,9 +13,10 @@ class Dog(Agent):
     RAYS = 0
     TARGETS = 1
 
-    def __init__(self, observationSpace, envParams: EnvParams):
+    def __init__(self, observationSpace, envParams: EnvParams, env):
         super().__init__(envParams)
 
+        self.env = env
         self.rotation = 0
         self.observation = observationSpace
         self.rotationMode = self.params.ROTATION_MODE
@@ -49,17 +50,12 @@ class Dog(Agent):
             self.rotation += action[2] * self.params.MAX_ROTATION_DELTA * DEG2RAD
             self.rotation = self.rotation % TWOPI
         else:
-            self.rotation = self._calculateRotation()
+            self.rotation = np.arctan2(self.y - self.env.herdCentrePoint[1], self.x - self.env.herdCentrePoint[0]) + 90 * DEG2RAD
 
         cosRotation = math.cos(self.rotation)
         sinRotation = math.sin(self.rotation)
         self.x += deltaX * cosRotation + deltaY * sinRotation
         self.y += deltaY * -cosRotation + deltaX * sinRotation
-
-    def _calculateRotation(self):
-        # Obliczenie rotacji wskazującej środek ciężkości stada owiec
-        # TODO
-        return 0
 
     def clearObservation(self):
         for i, _ in enumerate(self.observation[self.RAYS]):

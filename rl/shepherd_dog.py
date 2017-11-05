@@ -1,10 +1,10 @@
 from env.herding import Herding, EnvParams
 import numpy as np
 from tensorforce.agents import TRPOAgent
-from tensorforce.core.networks import layered_network_builder
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
 from rl.multi_agent_wrapper import MultiAgentWrapper
+from tensorforce import Configuration
 
 
 class OpenAIWrapper(OpenAIGym):
@@ -15,30 +15,26 @@ class OpenAIWrapper(OpenAIGym):
 
 
 params = EnvParams()
-params.DOG_COUNT = 3
+params.DOG_COUNT = 1
 params.SHEEP_COUNT = 10
 params.RAYS_COUNT = 128
 params.FIELD_OF_VIEW = 180
+params.MAX_MOVEMENT_DELTA = 2
+params.EPOCH = 50000
+params.MAX_ROTATION_DELTA = 20
 env = OpenAIWrapper(Herding(params), 'herding')
 
-agent = MultiAgentWrapper(config=dict(
-    log_level='info',
-    batch_size=4096,
-
-    gae_lambda=0.97,
-    learning_rate=0.001,
-    entropy_penalty=0.01,
-    epochs=5,
-    optimizer_batch_size=512,
-    loss_clipping=0.2,
-
-    states=env.states,
-    actions=env.actions,
-    network=layered_network_builder([
-        dict(type='dense', size=32),
-        dict(type='dense', size=32)
-    ])
-), Agent=TRPOAgent, quantity=params.DOG_COUNT)
+agent = TRPOAgent(
+    states_spec=env.states,
+    actions_spec=env.actions,
+    network_spec=[
+        dict(type='dense', size=128),
+        dict(type='dense', size=64)
+    ],
+    config=Configuration(
+        batch_size=4096,
+        normalize_rewards=True
+    ))
 
 # Create the runner
 runner = Runner(agent=agent, environment=env)
@@ -52,12 +48,14 @@ def episode_finished(r):
 
 
 # Start learning
-runner.run(episodes=10, episode_finished=episode_finished)
-
+runner.run(episode_finished=episode_finished, episodes=100, timesteps=2000)
+input("continue")
+env = OpenAIWrapper(Herding(params), 'herding')
 while True:
     state = env.reset()
     terminal = False
     while terminal is False:
-        action = agent.act(state=state, deterministic=True)
-        state, reward, terminal = env.execute(action)
+        action = agent.act(states=state, deterministic=True)
+        print(action)
+        state, terminal, reward = env.execute(action)
         env.gym.render()

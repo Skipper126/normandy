@@ -96,7 +96,7 @@ class Herding(gym.Env):
             Każdy z psów otrzymuje wskaźnik na fragment observation_space dotyczący jego
             obserwacji. Przy każdym kroku będzie aktualizował swój fragment tablicy.
             """
-            self.dogList.append(Dog(self.state[i], self.params))
+            self.dogList.append(Dog(self.state[i], self.params, self))
 
         # Każdy agent dostaje kopię tablic innych agentów, bez siebie samego.
         for i in range(self.sheepCount):
