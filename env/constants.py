@@ -30,8 +30,19 @@ class AgentsLayout:
 
     @staticmethod
     def DOGS_OUTSIDE_CIRCLE(env):
-        # TODO
-        pass
+        padding = 5
+        for agent in env.dogList:
+            x = random.randint(agent.radius + padding, env.mapWidth - agent.radius - padding)
+            y = random.randint(agent.radius + padding, env.mapHeight - agent.radius - padding)
+            agent.setPos(x, y)
+
+        wpadding = int(env.mapWidth / 6)
+        hpadding = int(env.mapHeight / 6)
+        for agent in env.sheepList:
+            x = random.randint(agent.radius + wpadding, env.mapWidth - agent.radius - wpadding)
+            y = random.randint(agent.radius + hpadding, env.mapHeight - agent.radius - hpadding)
+            agent.setPos(x, y)
+
 
     @staticmethod
     def DOGS_INSIDE_CIRCLE(env):

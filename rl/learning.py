@@ -18,51 +18,9 @@ import argparse
 import pprint as pp
 from collections import deque
 import random
-from env.herding import Herding, EnvParams, RotationMode
+from env.herding import Herding, EnvParams, RotationMode, AgentsLayout
 import win32api
-
-class EnvWrapper(Herding):
-
-    def _step(self, action):
-        self.dogList[0].move(action)
-
-        for sheep in self.sheepList:
-            sheep.move()
-
-        self.dogList[0].updateObservation()
-
-        return np.append(self.state[0][0], self.state[0][1]), self._reward(), self._checkIfDone(), {}
-
-    def _reset(self):
-        self.setUpAgents(self)
-        self.dogList[0].updateObservation()
-
-        return np.append(self.state[0][0], self.state[0][1])
-
-    def _checkIfDone(self):
-        if self.scatter < self.params.SCATTER_LEVEL:
-            return True
-
-        if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-                self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-                return True
-        return False
-
-    def _reward(self):
-        self._scatter()
-       #self.rewardValue = EULER.__pow__(((self.previousScatter - self.scatter).__pow__(2) / 2).__neg__())
-        self.rewardValue = self.previousScatter - self.scatter
-        if self.scatter < self.previousScatter:
-            self.rewardValue.__neg__()
-        if self.scatter < self.params.SCATTER_LEVEL:
-            self.rewardValue = self.params.REWARD_FOR_HERDING
-
-        #print(self.rewardValue, self.scatter, self.constansScatterCounter)
-        returnValue = -0.5 if self.rewardValue <= 0 else 1
-        if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-                self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-            returnValue = -1000
-        return returnValue
+from .testenv import TestEnv
 
 
 
@@ -342,7 +300,18 @@ def build_summaries():
 # ===========================
 #   Agent Training
 # ===========================
-
+def peek(env, actor):
+    while True:
+        state = env.reset()
+        terminal = False
+        if win32api.GetAsyncKeyState(ord('X')):
+            break
+        while terminal is False:
+            action = actor.predict(np.reshape(state, (1, actor.s_dim)))[0]
+            state, reward, terminal, _ = env.step(action)
+            env.render()
+            if win32api.GetAsyncKeyState(ord('X')):
+                break
 def train(sess, env, args, actor, critic, actor_noise):
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
@@ -358,8 +327,6 @@ def train(sess, env, args, actor, critic, actor_noise):
     replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
 
     for i in range(int(args['max_episodes'])):
-        if win32api.GetAsyncKeyState(ord('H')):
-            break
         s = env.reset()
 
         ep_reward = 0
@@ -374,6 +341,8 @@ def train(sess, env, args, actor, critic, actor_noise):
             # a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
             a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
             s2, r, terminal, info = env.step(a[0])
+            if win32api.GetAsyncKeyState(ord('O')):
+                peek(env, actor)
             replay_buffer.add(np.reshape(s, (actor.s_dim,)), np.reshape(a, (actor.a_dim,)), r,
                               terminal, np.reshape(s2, (actor.s_dim,)))
             # Keep adding experience to the memory until
@@ -431,11 +400,13 @@ def main(args):
         # env = gym.make(args['env'])
         params = EnvParams()
         params.DOG_COUNT = 1
-        params.SHEEP_COUNT = 40
+        params.SHEEP_COUNT = 8
         params.RAYS_COUNT = 128
+        params.SCATTER_LEVEL = 5000
+        params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
         params.FIELD_OF_VIEW = 180
-        params.MAX_ROTATION_DELTA = 2
-        env = EnvWrapper(params)
+        params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
+        env = TestEnv(params)
         np.random.seed(int(args['random_seed']))
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
@@ -468,18 +439,7 @@ def main(args):
         # if args['use_gym_monitor']:
         #     env.monitor.close()
 
-        while True:
-            state = env.reset()
-            terminal = False
-            if win32api.GetAsyncKeyState(ord('H')):
-                break
-            while terminal is False:
-                action = actor.predict(np.reshape(state, (1, actor.s_dim)))[0]
-                print(action)
-                state,  reward, terminal, _ = env.step(action)
-                env.render()
-                if win32api.GetAsyncKeyState(ord('H')):
-                    break
+
 
 
 if __name__ == '__main__':
