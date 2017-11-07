@@ -19,7 +19,7 @@ class OpenAIWrapper(OpenAIGym):
 
 
 params = EnvParams()
-params.DOG_COUNT = 2
+params.DOG_COUNT = 1
 params.SHEEP_COUNT = 10
 params.RAYS_COUNT = 128
 params.FIELD_OF_VIEW = 180
@@ -63,7 +63,7 @@ def episode_finished(r):
                 r.environment.gym.render()
                 if terminal is True:
                     break
-    return False
+    return True
 
 
 # Start learning
