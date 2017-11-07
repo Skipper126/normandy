@@ -8,7 +8,8 @@ from tensorforce import Configuration
 import gym
 from gym import spaces
 import win32api
-from testenv import TestEnv
+from rl.testenv import TestEnv
+
 
 class OpenAIWrapper(OpenAIGym):
 
@@ -28,17 +29,6 @@ params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
 params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
 env = OpenAIWrapper(TestEnv(params), 'herding')
 
-# agent = TRPOAgent(
-#     states_spec=env.states,
-#     actions_spec=env.actions,
-#     network_spec=[
-#         dict(type='dense', size=300),
-#         dict(type='dense', size=100)
-#     ],
-#     config=Configuration(
-#         batch_size=4096,
-#         normalize_rewards=True
-#     ))
 agent = MultiAgentWrapper(TRPOAgent, dict(
     states_spec=env.states,
     actions_spec=env.actions,
@@ -73,10 +63,9 @@ def episode_finished(r):
                 r.environment.gym.render()
                 if terminal is True:
                     break
-    if win32api.GetAsyncKeyState(ord('S')):
-        r.agent.save_model('model.ckpt')
-    return True
+    return False
 
 
 # Start learning
 runner.run(episode_finished=episode_finished, max_episode_timesteps=1000)
+agent.save_model('test.model')
