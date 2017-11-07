@@ -68,4 +68,3 @@ def episode_finished(r):
 
 # Start learning
 runner.run(episode_finished=episode_finished, max_episode_timesteps=1000)
-agent.save_model('test.model')

@@ -1,6 +1,7 @@
 import numpy as np
 from tensorforce import Configuration
-
+from tensorflow.python.training.saver import Saver
+import tensorflow as tf
 
 class MultiAgentWrapper:
 
@@ -46,4 +47,5 @@ class MultiAgentWrapper:
         self.model.load_model(path)
 
     def save_model(self, path):
-        self.model.save_model(path)
+        # self.model.save_model(path)
+        self.agents[0].save_model(path)
