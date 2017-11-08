@@ -73,7 +73,7 @@ class TestEnv(Herding):
 
     @property
     def observation_space(self):
-        return spaces.Box(-1, 1, (self.raysCount * 2,))
+        return spaces.Box(-1, 1, ((self.raysCount + 1) * 2,))
 
     def _close(self):
         pass

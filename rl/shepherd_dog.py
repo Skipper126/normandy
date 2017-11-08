@@ -8,6 +8,7 @@ from tensorforce import Configuration
 import gym
 from gym import spaces
 import win32api
+import sys
 from rl.testenv import TestEnv
 
 
@@ -20,12 +21,14 @@ class OpenAIWrapper(OpenAIGym):
 
 params = EnvParams()
 params.DOG_COUNT = 2
-params.SHEEP_COUNT = 10
+params.SHEEP_COUNT = 20
 params.RAYS_COUNT = 128
-params.FIELD_OF_VIEW = 180
+params.RAY_LENGTH = 600
+params.FIELD_OF_VIEW = 270
 params.MAX_MOVEMENT_DELTA = 5
+params.MAX_ROTATION_DELTA = 20
 params.EPOCH = 50000
-params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
+# params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
 params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
 env = OpenAIWrapper(TestEnv(params), 'herding')
 
@@ -49,6 +52,7 @@ runner = Runner(agent=agent, environment=env)
 def episode_finished(r):
     print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(ep=r.episode, ts=r.timestep,
                                                                                  reward=r.episode_rewards[-1]))
+    sys.stdout.flush()
     if win32api.GetAsyncKeyState(ord('P')):
         while True:
             if win32api.GetAsyncKeyState(ord('C')):
@@ -63,8 +67,8 @@ def episode_finished(r):
                 r.environment.gym.render()
                 if terminal is True:
                     break
-    return False
+    return True
 
 
 # Start learning
-runner.run(episode_finished=episode_finished, max_episode_timesteps=1000)
+runner.run(episode_finished=episode_finished, max_episode_timesteps=5000)

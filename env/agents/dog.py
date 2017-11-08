@@ -12,6 +12,9 @@ class Dog(Agent):
     """
     RAYS = 0
     TARGETS = 1
+    LENGTH_TO_CENTER = 0
+    TAN_TO_CENTER = 1
+
 
     def __init__(self, observationSpace, envParams: EnvParams, env):
         super().__init__(envParams)
@@ -123,6 +126,13 @@ class Dog(Agent):
         # color right rays
         self.iterateRays(distance, agent, right, 1)
 
+    def updateObservationToCenter(self):
+        lastIndex = self.params.RAYS_COUNT
+        absX = abs(self.x - self.env.herdCentrePoint[0])
+        absY = abs(self.y - self.env.herdCentrePoint[1])
+        self.observation[self.LENGTH_TO_CENTER][lastIndex] = pow(pow(absX, 2) + pow(absY, 2), 0.5) / self.params.RAY_LENGTH
+        self.observation[self.TAN_TO_CENTER][lastIndex] = (((np.arctan2(absX, absY) + self.rotation) % TWOPI) * 2) / TWOPI - 1
+
     def updateObservation(self):
         """
         Metoda przeprowadzająca raytracing. Zmienna observation wskazuje na tablicę observation_space[i]
@@ -135,3 +145,4 @@ class Dog(Agent):
                 tempAngle = self.calculateAngle(agent)
                 if self.isInSight(tempAngle):
                     self.colorRays(tempAngle, distance, agent)
+        self.updateObservationToCenter()

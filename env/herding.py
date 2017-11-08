@@ -133,7 +133,7 @@ class Herding(gym.Env):
                     1 - pies
             trzeci - poszczególne wartości wektora
         """
-        return np.ndarray(shape=(self.dogCount, 2, self.raysCount), dtype=float)
+        return np.ndarray(shape=(self.dogCount, 2, self.raysCount + 1), dtype=float)
 
     def _checkIfDone(self):
         """
