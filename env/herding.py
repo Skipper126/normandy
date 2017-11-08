@@ -107,47 +107,25 @@ class Herding(gym.Env):
 
     @property
     def action_space(self):
-        """
-        Stworzenie action space zależnego od ilości psów w środowisku.
-        Action space to krotka zawierająca wejscia dla kolejnych psów. 
-        Każde wejscie to MultiDiscrete action space zawierający:
-        deltaX, deltaY i zależnie od parametrów deltaRotation.
-        """
         dim = 3 if self.rotationMode is RotationMode.FREE else 2
         singleActionSpace = spaces.Box(-1, 1, (dim,))
-        return singleActionSpace
+        return spaces.Tuple((singleActionSpace,) * self.dogCount)
 
     @property
     def observation_space(self):
-        return spaces.Box(-1, 1, (self.raysCount * 2,))
+        singleObservationSpace = spaces.Box(-1, 1, (2, self.raysCount))
+        return spaces.Tuple((singleObservationSpace,) * self.dogCount)
 
     def _createState(self):
-        """
-        Wymiary tablicy observation_space:
-            pierwszy - tablica obserwacji dla każdego z psów
-            drugi - tablica wektorów obserwacji
-                0 - wektor wyników raytracingu (wartości od 0 do 1),
-                1 - wektor określający obiekt trafiony przez promień:
-                    -1 - owca
-                    0 - nic
-                    1 - pies
-            trzeci - poszczególne wartości wektora
-        """
         return np.ndarray(shape=(self.dogCount, 2, self.raysCount + 1), dtype=float)
 
     def _checkIfDone(self):
-        """
-        Sprawdzanie czy zakończyć już symulację
-        """
-        # TODO
-        self.epoch += 1
-        if self.epoch == self.params.EPOCH or self.scatter < self.params.SCATTER_LEVEL:
+        if self.scatter < self.params.SCATTER_LEVEL:
             return True
 
         return False
 
     def _scatter(self):
-        # do sprawdzenia
         self.herdCentrePoint[0] = self.herdCentrePoint[1] = 0
         for sheep in self.sheepList:
             self.herdCentrePoint[0] += sheep.x
@@ -163,21 +141,11 @@ class Herding(gym.Env):
                 sheep.y - self.herdCentrePoint[1]).__pow__(2)
 
     def _reward(self):
-        """
-        Obliczanie nagrody za dany ruch. Sposób obliczenia jeszcze nie ustalony,
-        najprawdopodobniej będzie to suma kwadratów odległości owiec od ich środka ciężkości.
-        Wyliczenie scatter - rozproszenie
-        """
         self._scatter()
-
-        #do sprawdzenia
-        #self.rewardValue = EULER.__pow__(((self.previousScatter - self.scatter).__pow__(2) / 2).__neg__())
         self.rewardValue = self.previousScatter - self.scatter
         if self.scatter < self.previousScatter:
             self.rewardValue.__neg__()
         if self.scatter < self.params.SCATTER_LEVEL:
             self.rewardValue = self.params.REWARD_FOR_HERDING
-
-        #print(self.rewardValue, self.scatter, self.constansScatterCounter)
 
         return self.rewardValue

@@ -1,9 +1,17 @@
-from env.herding import Herding, EnvParams, RotationMode, AgentsLayout
+from env.herding import Herding, RotationMode
+from tensorforce.contrib.openai_gym import OpenAIGym
 import numpy as np
 from gym import spaces
 
 
-class TestEnv(Herding):
+class OpenAIWrapper(OpenAIGym):
+
+    def __init__(self, env, gym_id):
+        self.gym_id = gym_id
+        self.gym = env
+
+
+class EnvWrapper(Herding):
 
     def _step(self, action):
         state, reward, terminal, _ = super()._step(action)
@@ -39,43 +47,18 @@ class TestEnv(Herding):
 
     def _reward(self):
         self._scatter()
-       #self.rewardValue = EULER.__pow__(((self.previousScatter - self.scatter).__pow__(2) / 2).__neg__())
-        # self.rewardValue = self.previousScatter - self.scatter
-        # if self.scatter < self.previousScatter:
-        #     self.rewardValue.__neg__()
-
-
-        #print(self.rewardValue, self.scatter, self.constansScatterCounter)
-        # returnValue = -0.5 if self.rewardValue <= 0 else 1
-        # if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-        #         self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-        #     returnValue = -100
-        # if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
-        #                 np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
-        #     returnValue = -100
-        # if self.scatter < self.params.SCATTER_LEVEL:
-        #     self.rewardValue = self.params.REWARD_FOR_HERDING
-        #     returnValue = 100
-
         returnValue = 0
         if self.scatter < self.previousScatter:
-            returnValue += self.params.REWARD
+            returnValue = self.params.REWARD
         elif self.scatter <= self.params.SCATTER_LEVEL:
-            returnValue += self.params.REWARD_FOR_HERDING
+            returnValue = self.params.REWARD_FOR_HERDING
         else:
-            returnValue -= self.params.REWARD
-
+            returnValue = -self.params.REWARD
 
         return returnValue
 
     @property
     def action_space(self):
-        """
-        Stworzenie action space zależnego od ilości psów w środowisku.
-        Action space to krotka zawierająca wejscia dla kolejnych psów.
-        Każde wejscie to MultiDiscrete action space zawierający:
-        deltaX, deltaY i zależnie od parametrów deltaRotation.
-        """
         dim = 3 if self.rotationMode is RotationMode.FREE else 2
         singleActionSpace = spaces.Box(-1, 1, (dim,))
         return singleActionSpace
