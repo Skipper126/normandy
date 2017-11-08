@@ -22,6 +22,7 @@ class MultiAgentWrapper:
 
     def close(self):
         self.model.close()
+
     @property
     def timestep(self):
         return self.agents[0].timestep
@@ -43,9 +44,11 @@ class MultiAgentWrapper:
     def observe_episode_reward(self, episode_reward):
         self.model.write_episode_reward_summary(episode_reward)
 
-    def load_model(self, path):
-        self.model.load_model(path)
+    def should_stop(self):
+        return False
+
+    def load_model(self, directory=None, file=None):
+        self.model.restore(directory, file)
 
     def save_model(self, path):
-        # self.model.save_model(path)
-        self.agents[0].save_model(path)
+        self.model.save(path)
