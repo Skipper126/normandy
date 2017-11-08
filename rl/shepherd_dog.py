@@ -1,14 +1,13 @@
 from env.herding import Herding, EnvParams, RotationMode, AgentsLayout
-import numpy as np
 from tensorforce.agents import TRPOAgent
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
 from rl.multi_agent_wrapper import MultiAgentWrapper
 from tensorforce import Configuration
-import gym
-from gym import spaces
 import win32api
 from rl.testenv import TestEnv
+
+SAVE_DIRECTORY = './model/'
 
 
 class OpenAIWrapper(OpenAIGym):
@@ -19,16 +18,13 @@ class OpenAIWrapper(OpenAIGym):
 
 
 params = EnvParams()
-params.DOG_COUNT = 2
-params.SHEEP_COUNT = 20
+params.DOG_COUNT = 1
+params.SHEEP_COUNT = 40
 params.RAYS_COUNT = 128
 params.RAY_LENGTH = 600
 params.FIELD_OF_VIEW = 270
-params.MAX_MOVEMENT_DELTA = 5
 params.MAX_ROTATION_DELTA = 20
-params.EPOCH = 50000
-# params.ROTATION_MODE = RotationMode.LOCKED_ON_HERD_CENTRE
-params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
+params.LAYOUT_FUNCTION = AgentsLayout.RANDOM
 env = OpenAIWrapper(TestEnv(params), 'herding')
 
 agent = MultiAgentWrapper(TRPOAgent, dict(
@@ -65,8 +61,14 @@ def episode_finished(r):
                 r.environment.gym.render()
                 if terminal is True:
                     break
+    if win32api.GetAsyncKeyState(ord('S')):
+        r.agent.save_model(SAVE_DIRECTORY)
+        print('model saved')
+    if win32api.GetAsyncKeyState(ord('L')):
+        r.agent.load_model(SAVE_DIRECTORY)
+        print('model restored')
     return True
 
 
 # Start learning
-runner.run(episode_finished=episode_finished, max_episode_timesteps=5000)
+runner.run(episode_finished=episode_finished, max_episode_timesteps=500)

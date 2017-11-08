@@ -1,7 +1,4 @@
-import numpy as np
-from tensorforce import Configuration
-from tensorflow.python.training.saver import Saver
-import tensorflow as tf
+
 
 class MultiAgentWrapper:
 
@@ -47,8 +44,8 @@ class MultiAgentWrapper:
     def should_stop(self):
         return False
 
-    def load_model(self, directory=None, file=None):
-        self.model.restore(directory, file)
+    def load_model(self, directory):
+        self.model.restore(directory)
 
     def save_model(self, path):
         self.model.save(path)
