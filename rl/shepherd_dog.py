@@ -8,7 +8,6 @@ from tensorforce import Configuration
 import gym
 from gym import spaces
 import win32api
-import sys
 from rl.testenv import TestEnv
 
 
@@ -52,7 +51,6 @@ runner = Runner(agent=agent, environment=env)
 def episode_finished(r):
     print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(ep=r.episode, ts=r.timestep,
                                                                                  reward=r.episode_rewards[-1]))
-    sys.stdout.flush()
     if win32api.GetAsyncKeyState(ord('P')):
         while True:
             if win32api.GetAsyncKeyState(ord('C')):
