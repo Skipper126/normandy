@@ -40,22 +40,31 @@ class TestEnv(Herding):
     def _reward(self):
         self._scatter()
        #self.rewardValue = EULER.__pow__(((self.previousScatter - self.scatter).__pow__(2) / 2).__neg__())
-        self.rewardValue = self.previousScatter - self.scatter
-        if self.scatter < self.previousScatter:
-            self.rewardValue.__neg__()
+        # self.rewardValue = self.previousScatter - self.scatter
+        # if self.scatter < self.previousScatter:
+        #     self.rewardValue.__neg__()
 
 
         #print(self.rewardValue, self.scatter, self.constansScatterCounter)
-        returnValue = -0.5 if self.rewardValue <= 0 else 1
-        if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-                self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-            returnValue = -100
-        if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
-                        np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
-            returnValue = -100
-        if self.scatter < self.params.SCATTER_LEVEL:
-            self.rewardValue = self.params.REWARD_FOR_HERDING
-            returnValue = 100
+        # returnValue = -0.5 if self.rewardValue <= 0 else 1
+        # if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
+        #         self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
+        #     returnValue = -100
+        # if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
+        #                 np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
+        #     returnValue = -100
+        # if self.scatter < self.params.SCATTER_LEVEL:
+        #     self.rewardValue = self.params.REWARD_FOR_HERDING
+        #     returnValue = 100
+
+        returnValue = 0
+        if self.scatter < self.previousScatter:
+            returnValue += self.params.REWARD
+        elif self.scatter <= self.params.SCATTER_LEVEL:
+            returnValue += self.params.REWARD_FOR_HERDING
+        else:
+            returnValue -= self.params.REWARD
+
 
         return returnValue
 
