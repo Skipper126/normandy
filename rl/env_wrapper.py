@@ -37,16 +37,17 @@ class EnvWrapper(Herding):
         if self.scatter < self.params.SCATTER_LEVEL:
             return True
 
-        if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-                self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-                return True
-        if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
-                np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
-                return True
+        # if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
+        #         self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
+        #         return True
+        # if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
+        #         np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
+        #         return True
         return False
 
     def _reward(self):
         self._scatter()
+
         returnValue = 0
         if self.scatter < self.previousScatter:
             returnValue = self.params.REWARD
