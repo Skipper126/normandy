@@ -57,11 +57,11 @@ class EnvParams:
         self.DOG_COUNT = 2
         self.AGENT_RADIUS = 15
         self.SHEEP_BEHAVIOUR = SheepBehaviour.SIMPLE
-        self.FIELD_OF_VIEW = 180
+        self.FIELD_OF_VIEW = 220
         self.RAYS_COUNT = 128
-        self.RAY_LENGTH = 300
+        self.RAY_LENGTH = 600
         self.MAX_MOVEMENT_DELTA = 5
-        self.MAX_ROTATION_DELTA = 90
+        self.MAX_ROTATION_DELTA = 20
         self.MAP_HEIGHT = 800
         self.MAP_WIDTH = 1200
         self.LAYOUT_FUNCTION = AgentsLayout.RANDOM

@@ -7,6 +7,7 @@ class MultiAgentWrapper:
         firstAgent = agentType(**agentParams)
         self.agents.append(firstAgent)
         self.model = firstAgent.model
+        self.stop = False
         for _ in range(agentsCount - 1):
             agent = agentType(**agentParams)
             agent.model.close()
@@ -42,7 +43,7 @@ class MultiAgentWrapper:
         self.model.write_episode_reward_summary(episode_reward)
 
     def should_stop(self):
-        return False
+        return self.stop
 
     def load_model(self, directory):
         self.model.restore(directory)

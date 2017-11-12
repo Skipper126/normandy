@@ -1,77 +1,186 @@
+import sys
+import os
 from env.herding import Herding, EnvParams, RotationMode, AgentsLayout
 from tensorforce.agents import TRPOAgent
 from tensorforce.execution import Runner
-
 from rl.multi_agent_wrapper import MultiAgentWrapper
 from tensorforce import Configuration
-import win32api
 from rl.env_wrapper import EnvWrapper, OpenAIWrapper
+from statistics import mean
+import threading
+
+EXIT = -1
+NOOP = 0
+SAVE = 1
+flag = NOOP
 
 
-params = EnvParams()
-params.DOG_COUNT = 1
-params.SHEEP_COUNT = 20
-params.RAYS_COUNT = 128
-params.RAY_LENGTH = 600
-params.FIELD_OF_VIEW = 220
-params.MAX_ROTATION_DELTA = 20
-params.LAYOUT_FUNCTION = AgentsLayout.DOGS_OUTSIDE_CIRCLE
-env = OpenAIWrapper(EnvWrapper(params), 'herding')
+class Learning:
 
-SAVE_DIRECTORY = './model/'
-REPEAT_ACTIONS = 5
-MAX_EPISODE_TIMESTEPS = 3000
+    def __init__(
+            self,
+            network_spec=None,
+            dog_count=1,
+            sheep_count=20,
+            layout=AgentsLayout.DOGS_OUTSIDE_CIRCLE,
+            max_episode_timesteps=3000,
+            agent_type=TRPOAgent,
+            batch_size=2048,
+            repeat_actions=5,
+            save_dir=None,
+    ):
+        if save_dir is None:
+            raise Exception("save dir required!")
+        else:
+            self.save_dir = './model/' + save_dir + '/'
 
-agent = MultiAgentWrapper(TRPOAgent, dict(
-    states_spec=env.states,
-    actions_spec=env.actions,
-    network_spec=[
-        dict(type='dense', size=128),
-        dict(type='dense', size=64)
-    ],
-    config=Configuration(
-        batch_size=4096,
-        normalize_rewards=True
-    )
-), params.DOG_COUNT)
-# Create the runner
-runner = Runner(agent=agent, environment=env, repeat_actions=REPEAT_ACTIONS)
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
 
+        if network_spec is None:
+            self.network_spec = [
+                dict(type='dense', size=128),
+                dict(type='dense', size=64)
+            ]
+        else:
+            self.network_spec = network_spec
 
-# Callback function printing episode statistics
-def episode_finished(r):
-    print("Finished episode {ep} after {ts} timesteps (reward: {reward})".format(ep=r.episode, ts=r.timestep,
-                                                                                 reward=r.episode_rewards[-1]))
+        params = EnvParams()
+        params.DOG_COUNT = dog_count
+        params.SHEEP_COUNT = sheep_count
+        params.LAYOUT_FUNCTION = layout
+        self.env = OpenAIWrapper(EnvWrapper(params), 'herding')
+        self.configuration = Configuration(
+                    batch_size=batch_size,
+                    normalize_rewards=True
+                )
+        self.agent_type = agent_type
+        self.agent = MultiAgentWrapper(
+                self.agent_type,
+                dict(
+                    states_spec=self.env.states,
+                    actions_spec=self.env.actions,
+                    network_spec=self.network_spec,
+                    config=self.configuration
+                ),
+                dog_count)
 
-    if r.episode >= 90 and r.episode % 100 == 0:
-        r.agent.save_model(SAVE_DIRECTORY)
+        self.repeat_actions = repeat_actions
+        self.max_episode_timesteps = max_episode_timesteps
+        self.runner = Runner(agent=self.agent, environment=self.env, repeat_actions=repeat_actions)
+        self.instance_episodes = 0
+        self.level_changed = False
+        sys.stdout.flush()
+
+    def _log_data(self, r, avg_reward, info):
+        with open(self.save_dir + '/log.txt', 'a+') as f:
+            message = '{ep} {ts} {ar} {info}\n'.format(ep=r.episode, ts=r.timestep, ar=avg_reward, info=info)
+            f.write(message)
+            print(message)
+        sys.stdout.flush()
+
+    def change_env(self, dog_count, sheep_count, layout):
+        params = EnvParams()
+        params.DOG_COUNT = dog_count
+        params.SHEEP_COUNT = sheep_count
+        params.LAYOUT_FUNCTION = layout
+        self.save_model()
+        self.env = OpenAIWrapper(EnvWrapper(params), 'herding')
+        self.agent = MultiAgentWrapper(
+            self.agent_type,
+            dict(
+                states_spec=self.env.states,
+                actions_spec=self.env.actions,
+                network_spec=self.network_spec,
+                config=self.configuration
+            ),
+            dog_count
+        )
+        self.load_model()
+
+    def episode_finished(self, r):
+        global flag, EXIT, SAVE, NOOP
+        save_frequency = 50
+        avg_reward = mean(r.episode_rewards[-50:])
+        info = ''
+
+        if self.instance_episodes > save_frequency / 2 and r.episode % save_frequency == 0:
+            self.save_model()
+            self.instance_episodes += 1
+
+        if self.level_changed is False and avg_reward > 0:
+            self.change_env(dog_count=3, sheep_count=30, layout=AgentsLayout.DOGS_OUTSIDE_CIRCLE)
+            self.level_changed = True
+            info = 'level_changed'
+
+        self._log_data(r, avg_reward, info)
+
+        if flag == SAVE:
+            self.save_model()
+            return False
+        if flag == EXIT:
+            return False
+
+        return True
+
+    def learn(self):
+        self.runner.run(episode_finished=self.episode_finished, max_episode_timesteps=self.max_episode_timesteps)
+
+    def stop_learning(self):
+        self.agent.stop = True
+
+    def load_model(self):
+        if os.path.isfile(self.save_dir + '/checkpoint'):
+            self.agent.load_model(self.save_dir)
+            print('model loaded')
+            sys.stdout.flush()
+
+    def save_model(self):
+        self.agent.save_model(self.save_dir)
         print('model saved')
-    # if win32api.GetAsyncKeyState(ord('P')):
-    #     while True:
-    #         if win32api.GetAsyncKeyState(ord('C')):
-    #             break
-    #         state = r.environment.reset()
-    #         r.agent.reset()
-    #         timestep = 0
-    #         while True:
-    #             if win32api.GetAsyncKeyState(ord('C')):
-    #                 break
-    #             action = r.agent.act(states=state)
-    #             terminal = False
-    #             for _ in range(REPEAT_ACTIONS):
-    #                 state, terminal, reward = r.environment.execute(actions=action)
-    #                 timestep += 1
-    #                 r.environment.gym.render()
-    #             if terminal is True or timestep == MAX_EPISODE_TIMESTEPS:
-    #                 timestep = 0
-    #                 break
-    # if win32api.GetAsyncKeyState(ord('S')):
-    #     r.agent.save_model(SAVE_DIRECTORY)
-    #     print('model saved')
-    # if win32api.GetAsyncKeyState(ord('L')):
-    #     r.agent.load_model(SAVE_DIRECTORY)
-    #     print('model restored')
-    return True
+        sys.stdout.flush()
 
 
-runner.run(episode_finished=episode_finished, max_episode_timesteps=MAX_EPISODE_TIMESTEPS)
+class InputThread(threading.Thread):
+
+    def run(self):
+        global flag, EXIT, NOOP, SAVE
+        while flag is not EXIT:
+            text = input()
+            if text is 'q':
+                flag = EXIT
+            if text is 's':
+                flag = SAVE
+                break
+
+
+class LearningThread(threading.Thread):
+
+    def __init__(self, params):
+        super().__init__()
+        self.learning = Learning(**params)
+
+    def run(self):
+        self.learning.load_model()
+        self.learning.learn()
+
+
+def main():
+
+    it = InputThread()
+    configurations = [
+        LearningThread(dict(
+            save_dir='firstConf'
+        )),
+    ]
+    it.start()
+    for conf in configurations:
+        conf.start()
+
+    it.join()
+    for conf in configurations:
+        conf.join()
+
+
+if __name__ == '__main__':
+    main()
