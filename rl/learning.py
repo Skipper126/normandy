@@ -1,14 +1,13 @@
 import sys
 import os
-from env.herding import Herding, EnvParams, RotationMode, AgentsLayout
+from env.herding import EnvParams, AgentsLayout
 from tensorforce.agents import TRPOAgent
 from tensorforce.execution import Runner
 from rl.multi_agent_wrapper import MultiAgentWrapper
 from tensorforce import Configuration
 from rl.env_wrapper import EnvWrapper, OpenAIWrapper
-from statistics import mean
 import threading
-
+from statistics import mean
 EXIT = -1
 NOOP = 0
 SAVE = 1
@@ -19,32 +18,23 @@ class Learning:
 
     def __init__(
             self,
-            network_spec=None,
             dog_count=1,
-            sheep_count=20,
+            sheep_count=30,
             layout=AgentsLayout.DOGS_OUTSIDE_CIRCLE,
             max_episode_timesteps=3000,
             agent_type=TRPOAgent,
             batch_size=2048,
             repeat_actions=5,
-            save_dir=None,
+            terminal_reward=0
     ):
-        if save_dir is None:
-            raise Exception("save dir required!")
-        else:
-            self.save_dir = './model/' + save_dir + '/'
-
+        self.save_dir = os.path.dirname(__file__) + '/model/'
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
-        if network_spec is None:
-            self.network_spec = [
-                dict(type='dense', size=128),
-                dict(type='dense', size=64)
-            ]
-        else:
-            self.network_spec = network_spec
-
+        self.network_spec = [
+            dict(type='dense', size=128),
+            dict(type='dense', size=64)
+        ]
         params = EnvParams()
         params.DOG_COUNT = dog_count
         params.SHEEP_COUNT = sheep_count
@@ -69,56 +59,34 @@ class Learning:
         self.max_episode_timesteps = max_episode_timesteps
         self.runner = Runner(agent=self.agent, environment=self.env, repeat_actions=repeat_actions)
         self.instance_episodes = 0
-        self.level_changed = False
+        self.terminal_reward = terminal_reward
         sys.stdout.flush()
 
-    def _log_data(self, r, avg_reward, info):
-        with open(self.save_dir + '/log.txt', 'a+') as f:
-            message = '{ep} {ts} {ar} {info}\n'.format(ep=r.episode, ts=r.timestep, ar=avg_reward, info=info)
+    def _log_data(self, r, info):
+        with open(self.save_dir + '/out.log', 'a+') as f:
+            message = '{ep} {ts} {rw} {info}\n'.format(ep=r.episode, ts=r.timestep, rw=r.episode_rewards[-1], info=info)
             f.write(message)
             print(message)
         sys.stdout.flush()
 
-    def change_env(self, dog_count, sheep_count, layout):
-        params = EnvParams()
-        params.DOG_COUNT = dog_count
-        params.SHEEP_COUNT = sheep_count
-        params.LAYOUT_FUNCTION = layout
-        self.save_model()
-        self.env = OpenAIWrapper(EnvWrapper(params), 'herding')
-        self.agent = MultiAgentWrapper(
-            self.agent_type,
-            dict(
-                states_spec=self.env.states,
-                actions_spec=self.env.actions,
-                network_spec=self.network_spec,
-                config=self.configuration
-            ),
-            dog_count
-        )
-        self.load_model()
-
     def episode_finished(self, r):
         global flag, EXIT, SAVE, NOOP
         save_frequency = 50
-        avg_reward = mean(r.episode_rewards[-50:])
         info = ''
+        self.instance_episodes += 1
 
-        if self.instance_episodes > save_frequency / 2 and r.episode % save_frequency == 0:
+        if self.instance_episodes >= save_frequency and r.episode % save_frequency == 0:
             self.save_model()
-            self.instance_episodes += 1
 
-        if self.level_changed is False and avg_reward > 0:
-            self.change_env(dog_count=3, sheep_count=30, layout=AgentsLayout.DOGS_OUTSIDE_CIRCLE)
-            self.level_changed = True
-            info = 'level_changed'
-
-        self._log_data(r, avg_reward, info)
+        self._log_data(r, info)
 
         if flag == SAVE:
             self.save_model()
             return False
         if flag == EXIT:
+            return False
+        if len(r.episode_rewards) >= 50 and mean(r.episode_rewards[-50:]) > self.terminal_reward:
+            self.save_model()
             return False
 
         return True
@@ -163,24 +131,3 @@ class LearningThread(threading.Thread):
     def run(self):
         self.learning.load_model()
         self.learning.learn()
-
-
-def main():
-
-    it = InputThread()
-    configurations = [
-        LearningThread(dict(
-            save_dir='firstConf'
-        )),
-    ]
-    it.start()
-    for conf in configurations:
-        conf.start()
-
-    it.join()
-    for conf in configurations:
-        conf.join()
-
-
-if __name__ == '__main__':
-    main()

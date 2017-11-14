@@ -1,8 +1,6 @@
 from env.herding import Herding, RotationMode
 from tensorforce.contrib.openai_gym import OpenAIGym
-import numpy as np
 from gym import spaces
-
 
 class OpenAIWrapper(OpenAIGym):
 
@@ -32,31 +30,6 @@ class EnvWrapper(Herding):
             newState.append(s)
 
         return newState
-
-    def _checkIfDone(self):
-        if self.scatter < self.params.SCATTER_LEVEL:
-            return True
-
-        # if self.dogList[0].y > self.mapHeight + 100 or self.dogList[0].y < -100 or \
-        #         self.dogList[0].x > self.mapWidth + 100 or self.dogList[0].x < -100:
-        #         return True
-        # if np.abs(self.dogList[0].y - self.herdCentrePoint[1]) < 5 and \
-        #         np.abs(self.dogList[0].x - self.herdCentrePoint[0]) < 5:
-        #         return True
-        return False
-
-    def _reward(self):
-        self._scatter()
-
-        returnValue = 0
-        if self.scatter < self.previousScatter:
-            returnValue = self.params.REWARD
-        elif self.scatter <= self.params.SCATTER_LEVEL:
-            returnValue = self.params.REWARD_FOR_HERDING
-        else:
-            returnValue = -self.params.REWARD
-
-        return returnValue
 
     @property
     def action_space(self):

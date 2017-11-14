@@ -119,12 +119,6 @@ class Herding(gym.Env):
     def _createState(self):
         return np.ndarray(shape=(self.dogCount, 2, self.raysCount + 1), dtype=float)
 
-    def _checkIfDone(self):
-        if self.scatter < self.params.SCATTER_LEVEL:
-            return True
-
-        return False
-
     def _scatter(self):
         self.herdCentrePoint[0] = self.herdCentrePoint[1] = 0
         for sheep in self.sheepList:
@@ -140,12 +134,20 @@ class Herding(gym.Env):
             self.scatter += (sheep.x - self.herdCentrePoint[0]).__pow__(2) + (
                 sheep.y - self.herdCentrePoint[1]).__pow__(2)
 
+    def _checkIfDone(self):
+        if self.scatter < self.params.SCATTER_LEVEL:
+            return True
+        return False
+
     def _reward(self):
         self._scatter()
-        self.rewardValue = self.previousScatter - self.scatter
-        if self.scatter < self.previousScatter:
-            self.rewardValue.__neg__()
-        if self.scatter < self.params.SCATTER_LEVEL:
-            self.rewardValue = self.params.REWARD_FOR_HERDING
 
-        return self.rewardValue
+        returnValue = 0
+        if self.scatter < self.previousScatter:
+            returnValue = self.params.REWARD
+        elif self.scatter <= self.params.SCATTER_LEVEL:
+            returnValue = self.params.REWARD_FOR_HERDING
+        else:
+            returnValue = -self.params.REWARD
+
+        return returnValue

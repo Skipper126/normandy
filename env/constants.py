@@ -53,7 +53,7 @@ class AgentsLayout:
 class EnvParams:
 
     def __init__(self):
-        self.SHEEP_COUNT = 7
+        self.SHEEP_COUNT = 30
         self.DOG_COUNT = 2
         self.AGENT_RADIUS = 15
         self.SHEEP_BEHAVIOUR = SheepBehaviour.SIMPLE
@@ -66,7 +66,7 @@ class EnvParams:
         self.MAP_WIDTH = 1200
         self.LAYOUT_FUNCTION = AgentsLayout.RANDOM
         self.ROTATION_MODE = RotationMode.FREE
-        self.REWARD_FOR_HERDING = 10
+        self.REWARD_FOR_HERDING = 1000
         self.REWARD = 0.2
         self.EPOCH = 1000
-        self.SCATTER_LEVEL = 200
+        self.SCATTER_LEVEL = 90000

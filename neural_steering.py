@@ -1,22 +1,3 @@
-from rl.learning import *
-
-it = InputThread()
-configurations = [
-    LearningThread(dict(
-        save_dir='firstConf'
-    )),
-]
-it.start()
-for conf in configurations:
-    conf.start()
-
-it.join()
-for conf in configurations:
-    conf.join()
-
-
-
-
 # while True:
 #     state = env.reset()
 #     agent.reset()
