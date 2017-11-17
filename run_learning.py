@@ -11,20 +11,6 @@ def exit_handler():
 atexit.register(exit_handler)
 
 rl = Learning(
-    terminal_reward=-500,
-    sheep_count=20
-)
-rl.load_model()
-rl.learn()
-rl = Learning(
-    terminal_reward=0,
-    sheep_count=30,
-    max_episode_timesteps=5000,
-    layout=AgentsLayout.RANDOM
-)
-rl.load_model()
-rl.learn()
-rl = Learning(
     terminal_reward=9999999,
     sheep_count=30,
     max_episode_timesteps=8000,
